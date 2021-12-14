@@ -20,7 +20,7 @@ import (
 var domainPool map[string][]int
 
 const (
-	DBName = "DirichletMongo"
+	DBName   = "DirichletMongo"
 	SyncTime = time.Second * 60
 )
 
@@ -58,7 +58,7 @@ func init() {
 	mongo := flag.String("mongo", "mongodb://127.0.0.1:27017", "mongo db url")
 	flag.Parse()
 
-	err := mgm.SetDefaultConfig(&mgm.Config{CtxTimeout: 10 * time.Second}, DBName, options.Client().ApplyURI(*mongo))
+	err := mgm.SetDefaultConfig(&mgm.Config{CtxTimeout: 1 * time.Second}, DBName, options.Client().ApplyURI(*mongo))
 	if err != nil {
 		log.Printf("failed to connect to mongo: %s\n", err.Error())
 		return

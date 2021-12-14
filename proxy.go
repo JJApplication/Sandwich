@@ -11,6 +11,11 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"strings"
+	"time"
+)
+
+const (
+	FlushInterval = 60 * time.Second
 )
 
 // http转发
@@ -20,7 +25,7 @@ func newProxy() *httputil.ReverseProxy {
 			request.URL = ParseRequest(request)
 		},
 		Transport:     nil,
-		FlushInterval: 0,
+		FlushInterval: FlushInterval,
 		ErrorLog:      nil,
 		BufferPool:    nil,
 		ModifyResponse: func(response *http.Response) error {
@@ -29,6 +34,12 @@ func newProxy() *httputil.ReverseProxy {
 		},
 		ErrorHandler: func(writer http.ResponseWriter, request *http.Request, err error) {
 			if err != nil {
+				if err.Error() == "http: no Host in request URL" {
+					writer.Header().Add("Proxy-Server", ProxyServer)
+					writer.Header().Add("Proxy-Copyright", Copyright)
+					writer.WriteHeader(http.StatusTooManyRequests)
+					return
+				}
 				log.Printf("proxy connect error: %s\n", err.Error())
 				writer.Header().Add("Proxy-Server", ProxyServer)
 				writer.Header().Add("Proxy-Copyright", Copyright)
@@ -49,6 +60,11 @@ func Proxy() *httputil.ReverseProxy {
 func ParseRequest(req *http.Request) *url.URL {
 	uri := req.RequestURI
 	host := req.Host
+
+	if limitFlow(host, req.RemoteAddr) {
+		log.Printf("client %s has been limit to request\n", req.RemoteAddr)
+		return &url.URL{Host: "", Scheme: "http"}
+	}
 
 	if !resolveDomain(host) {
 		log.Printf("domain resolved failed: [%s]\n", host)
