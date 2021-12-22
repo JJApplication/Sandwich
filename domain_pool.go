@@ -118,9 +118,11 @@ func getDataFromMongo() {
 // 异步从数据库同步端口数据
 func syncJob() {
 	tick := time.NewTicker(SyncTime)
-	select {
-	case <-tick.C:
-		log.Println("sync job active")
-		getDataFromMongo()
+	for {
+		select {
+		case <-tick.C:
+			log.Println("sync job active")
+			getDataFromMongo()
+		}
 	}
 }
