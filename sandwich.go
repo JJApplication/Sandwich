@@ -16,6 +16,7 @@ func main() {
 	port := flag.String("port", "8888", "port")
 	flag.Parse()
 	p := Proxy()
+	go syncJob()
 	log.Println("proxy server start")
 	err := http.ListenAndServe(fmt.Sprintf(":%s", *port), p)
 	if err != nil {

@@ -64,7 +64,6 @@ func init() {
 		return
 	}
 	getDataFromMongo()
-	go syncJob()
 }
 
 func getDomainPort(host string) []int {
