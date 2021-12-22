@@ -100,9 +100,12 @@ func getDataFromMongo() {
 		log.Printf("get data from mongo failed: %s\n", err.Error())
 		return
 	}
+	// 托管随机端口服务和固定端口服务
 	for _, d := range data {
 		log.Printf("load [%s] to pool\n", d.Name)
 		if d.Meta.Domain != "" && d.RunData.RandomPort {
+			domainPool[d.Meta.Domain] = d.RunData.Ports
+		} else if d.Meta.Domain != "" && len(d.RunData.Ports) > 0 && !d.RunData.RandomPort {
 			domainPool[d.Meta.Domain] = d.RunData.Ports
 		}
 	}

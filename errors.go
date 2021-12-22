@@ -7,4 +7,5 @@ package main
 
 const (
 	ERRORSendProxy = "proxy resolve error"
+	ERRORTooMany   = "too many request"
 )

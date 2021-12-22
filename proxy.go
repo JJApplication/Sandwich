@@ -38,6 +38,7 @@ func newProxy() *httputil.ReverseProxy {
 					writer.Header().Add("Proxy-Server", ProxyServer)
 					writer.Header().Add("Proxy-Copyright", Copyright)
 					writer.WriteHeader(http.StatusTooManyRequests)
+					writer.Write([]byte(ERRORTooMany))
 					return
 				}
 				log.Printf("proxy connect error: %s\n", err.Error())
@@ -61,10 +62,11 @@ func ParseRequest(req *http.Request) *url.URL {
 	uri := req.RequestURI
 	host := req.Host
 
-	if limitFlow(host, req.RemoteAddr) {
+	if !limiter.GetConn() {
 		log.Printf("client %s has been limit to request\n", req.RemoteAddr)
 		return &url.URL{Host: "", Scheme: "http"}
 	}
+	defer limiter.ReleaseConn()
 
 	if !resolveDomain(host) {
 		log.Printf("domain resolved failed: [%s]\n", host)
