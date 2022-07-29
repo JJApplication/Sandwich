@@ -6,11 +6,11 @@ Created: 2021/12/12 by Landers
 package main
 
 import (
-	"flag"
 	"fmt"
 	"log"
 	"time"
 
+	"github.com/JJApplication/octopus_meta"
 	"github.com/kamva/mgm/v3"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -19,46 +19,24 @@ import (
 // 域名端口映射表
 var domainPool map[string][]int
 
-const (
-	DBName   = "DirichletMongo"
-	SyncTime = time.Second * 60
-)
+type App struct {
+	Meta octopus_meta.App
+}
 
 type DaoAPP struct {
 	mgm.DefaultModel `bson:",inline"`
-	App
-}
-
-type App struct {
-	Name    string  `json:"name" validate:"required" bson:"name"`
-	ID      string  `json:"id" validate:"required" bson:"id"`
-	Meta    Meta    `json:"meta" bson:"meta"`
-	RunData RunData `json:"run_data" bson:"run_data"`
-}
-
-type Meta struct {
-	Author string `json:"author" bson:"author"`
-	Domain string `json:"domain" bson:"domain"`
-}
-
-// RunData 运行时依赖
-type RunData struct {
-	Envs       []string `json:"envs" bson:"envs"` // just like `Name=Diri`
-	Ports      []int    `json:"ports" bson:"ports"`
-	RandomPort bool     `json:"random_port" bson:"random_port"` // if using random port
-	Host       string   `json:"host" bson:"host"`               // always must be localhost
+	App              `bson:"app"`
 }
 
 func (a *DaoAPP) CollectionName() string {
-	return "app"
+	return "microservice"
 }
 
 func init() {
 	domainPool = make(map[string][]int, 1)
-	mongo := flag.String("mongo", "mongodb://127.0.0.1:27017", "mongo db url")
-	flag.Parse()
+	parseFlags()
 
-	err := mgm.SetDefaultConfig(&mgm.Config{CtxTimeout: 1 * time.Second}, DBName, options.Client().ApplyURI(*mongo))
+	err := mgm.SetDefaultConfig(&mgm.Config{CtxTimeout: 1 * time.Second}, DBName, options.Client().ApplyURI(MongoUrl))
 	if err != nil {
 		log.Printf("failed to connect to mongo: %s\n", err.Error())
 		return
@@ -90,9 +68,10 @@ func domainReflect(host string) []string {
 func getDataFromMongo() {
 	var data []DaoAPP
 	err := mgm.Coll(&DaoAPP{}).SimpleFind(&data, bson.M{})
+	log.Printf("%+v", data)
 	for _, v := range data {
 		log.Printf("find app [%s] from mongo, domain: [%s], ports: [%+v]\n",
-			v.Name, v.Meta.Domain, v.RunData.Ports)
+			v.Meta.Name, v.Meta.Meta.Domain, v.Meta.RunData.Ports)
 	}
 
 	if err != nil {
@@ -101,11 +80,11 @@ func getDataFromMongo() {
 	}
 	// 托管随机端口服务和固定端口服务
 	for _, d := range data {
-		log.Printf("load [%s] to pool\n", d.Name)
-		if d.Meta.Domain != "" && d.RunData.RandomPort {
-			domainPool[d.Meta.Domain] = d.RunData.Ports
-		} else if d.Meta.Domain != "" && len(d.RunData.Ports) > 0 && !d.RunData.RandomPort {
-			domainPool[d.Meta.Domain] = d.RunData.Ports
+		log.Printf("load [%s] to pool\n", d.Meta.Name)
+		if d.Meta.Meta.Domain != "" && d.Meta.RunData.RandomPort {
+			domainPool[d.Meta.Meta.Domain] = d.Meta.RunData.Ports
+		} else if d.Meta.Meta.Domain != "" && len(d.Meta.RunData.Ports) > 0 && !d.Meta.RunData.RandomPort {
+			domainPool[d.Meta.Meta.Domain] = d.Meta.RunData.Ports
 		}
 	}
 

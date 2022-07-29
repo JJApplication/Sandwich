@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	PREFIX = "[SANDWICH]"
+	PREFIX = "[Sandwich] "
 )
 
 func init() {
