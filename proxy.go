@@ -35,16 +35,12 @@ func newProxy() *httputil.ReverseProxy {
 		ErrorHandler: func(writer http.ResponseWriter, request *http.Request, err error) {
 			if err != nil {
 				if err.Error() == "http: no Host in request URL" {
-					writer.Header().Add("Proxy-Server", ProxyServer)
-					writer.Header().Add("Proxy-Copyright", Copyright)
 					writer.WriteHeader(http.StatusTooManyRequests)
-					writer.Write([]byte(ERRORTooMany))
+					Cache(writer, request)
 					return
 				}
 				log.Printf("proxy connect error: %s\n", err.Error())
-				writer.Header().Add("Proxy-Server", ProxyServer)
-				writer.Header().Add("Proxy-Copyright", Copyright)
-				writer.Write([]byte(ERRORSendProxy))
+				Cache(writer, request)
 			}
 		},
 	}

@@ -35,13 +35,15 @@ func (a *DaoAPP) CollectionName() string {
 func init() {
 	domainPool = make(map[string][]int, 1)
 	parseFlags()
-
+	initLog()
 	err := mgm.SetDefaultConfig(&mgm.Config{CtxTimeout: 1 * time.Second}, DBName, options.Client().ApplyURI(MongoUrl))
 	if err != nil {
 		log.Printf("failed to connect to mongo: %s\n", err.Error())
 		return
 	}
 	getDataFromMongo()
+
+	go syncJob()
 }
 
 func getDomainPort(host string) []int {
@@ -68,7 +70,6 @@ func domainReflect(host string) []string {
 func getDataFromMongo() {
 	var data []DaoAPP
 	err := mgm.Coll(&DaoAPP{}).SimpleFind(&data, bson.M{})
-	log.Printf("%+v", data)
 	for _, v := range data {
 		log.Printf("find app [%s] from mongo, domain: [%s], ports: [%+v]\n",
 			v.Meta.Name, v.Meta.Meta.Domain, v.Meta.RunData.Ports)

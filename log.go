@@ -13,7 +13,7 @@ const (
 	PREFIX = "[Sandwich] "
 )
 
-func init() {
+func initLog() {
 	log.SetPrefix(PREFIX)
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 }
