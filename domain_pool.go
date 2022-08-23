@@ -8,6 +8,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	"github.com/JJApplication/octopus_meta"
@@ -18,6 +19,9 @@ import (
 
 // 域名端口映射表
 var domainPool map[string][]int
+
+// 更加安全的端口映射表
+var domainPoolSync sync.Mutex
 
 type App struct {
 	Meta octopus_meta.App
@@ -33,6 +37,7 @@ func (a *DaoAPP) CollectionName() string {
 }
 
 func init() {
+	domainPoolSync = sync.Mutex{}
 	domainPool = make(map[string][]int, 1)
 	parseFlags()
 	initLog()
@@ -81,12 +86,14 @@ func getDataFromMongo() {
 	}
 	// 托管随机端口服务和固定端口服务
 	for _, d := range data {
+		domainPoolSync.Lock()
 		log.Printf("load [%s] to pool\n", d.Meta.Name)
 		if d.Meta.Meta.Domain != "" && d.Meta.RunData.RandomPort {
 			domainPool[d.Meta.Meta.Domain] = d.Meta.RunData.Ports
 		} else if d.Meta.Meta.Domain != "" && len(d.Meta.RunData.Ports) > 0 && !d.Meta.RunData.RandomPort {
 			domainPool[d.Meta.Meta.Domain] = d.Meta.RunData.Ports
 		}
+		domainPoolSync.Unlock()
 	}
 
 	log.Println("domainPool is:")
