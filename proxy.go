@@ -33,15 +33,19 @@ func newProxy() *httputil.ReverseProxy {
 			return nil
 		},
 		ErrorHandler: func(writer http.ResponseWriter, request *http.Request, err error) {
-			if err != nil {
-				if err.Error() == "http: no Host in request URL" {
-					writer.WriteHeader(http.StatusTooManyRequests)
-					Cache(writer, request)
-					return
-				}
-				log.Printf("proxy connect error: %s\n", err.Error())
-				Cache(writer, request)
+			// 熔断判断
+			if err.Error() == "unsupported protocol scheme \"Sandwich\"" {
+				writer.WriteHeader(http.StatusBadGateway)
+				return
 			}
+			if err.Error() == "http: no Host in request URL" {
+				writer.WriteHeader(http.StatusTooManyRequests)
+				Cache(writer, request)
+				return
+			}
+			breaker.Set(request.Host)
+			log.Printf("proxy connect error: %s\n", err.Error())
+			Cache(writer, request)
 		},
 	}
 
@@ -58,23 +62,31 @@ func ParseRequest(req *http.Request) *url.URL {
 	uri := req.RequestURI
 	host := req.Host
 
+	if !breaker.Get(host) {
+		addInfluxData(req, StatBreak)
+		return &url.URL{Host: "localhost", Scheme: Sandwich}
+	}
 	if !limiter.GetConn() {
+		addInfluxData(req, StatAbort)
 		log.Printf("client %s has been limit to request\n", req.RemoteAddr)
 		return &url.URL{Host: "", Scheme: "http"}
 	}
 	defer limiter.ReleaseConn()
 
 	if !resolveDomain(host) {
+		addInfluxData(req, StatNotFound)
 		log.Printf("domain resolved failed: [%s]\n", host)
 		return nil
 	}
 
 	dst := domainReflect(host)
 	if dst == nil || len(dst) == 0 {
+		addInfluxData(req, StatNotFound)
 		log.Printf("domain reflect failed: [%s]\n", host)
 		return nil
 	}
 
+	addInfluxData(req, StatPass)
 	log.Printf("request recv| %s |uri: %s|host: %s\n", req.Method, uri, host)
 	// log.Printf("request header: %v\n", req.Header)
 	req.URL.Scheme = "http"

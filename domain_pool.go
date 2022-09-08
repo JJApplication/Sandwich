@@ -10,11 +10,6 @@ import (
 	"log"
 	"sync"
 	"time"
-
-	"github.com/JJApplication/octopus_meta"
-	"github.com/kamva/mgm/v3"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // 域名端口映射表
@@ -23,29 +18,10 @@ var domainPool map[string][]int
 // 更加安全的端口映射表
 var domainPoolSync sync.Mutex
 
-type App struct {
-	Meta octopus_meta.App
-}
-
-type DaoAPP struct {
-	mgm.DefaultModel `bson:",inline"`
-	App              `bson:"app"`
-}
-
-func (a *DaoAPP) CollectionName() string {
-	return "microservice"
-}
-
-func init() {
+func initPool() {
 	domainPoolSync = sync.Mutex{}
-	domainPool = make(map[string][]int, 1)
-	parseFlags()
+	domainPool = make(map[string][]int, 10)
 	initLog()
-	err := mgm.SetDefaultConfig(&mgm.Config{CtxTimeout: 1 * time.Second}, DBName, options.Client().ApplyURI(MongoUrl))
-	if err != nil {
-		log.Printf("failed to connect to mongo: %s\n", err.Error())
-		return
-	}
 	getDataFromMongo()
 
 	go syncJob()
@@ -73,17 +49,12 @@ func domainReflect(host string) []string {
 }
 
 func getDataFromMongo() {
-	var data []DaoAPP
-	err := mgm.Coll(&DaoAPP{}).SimpleFind(&data, bson.M{})
+	data := getAppFromMongo()
 	for _, v := range data {
 		log.Printf("find app [%s] from mongo, domain: [%s], ports: [%+v]\n",
 			v.Meta.Name, v.Meta.Meta.Domain, v.Meta.RunData.Ports)
 	}
 
-	if err != nil {
-		log.Printf("get data from mongo failed: %s\n", err.Error())
-		return
-	}
 	// 托管随机端口服务和固定端口服务
 	for _, d := range data {
 		domainPoolSync.Lock()

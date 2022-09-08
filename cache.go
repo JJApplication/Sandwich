@@ -18,6 +18,7 @@ import (
 )
 
 // 静态文件的缓存
+// 缓存headers支持gzip压缩
 
 var SandwichCache []byte
 
