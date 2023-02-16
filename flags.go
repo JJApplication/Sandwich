@@ -25,6 +25,8 @@ var (
 	InfluxOrg    = "renj"
 	InfluxBucket = "sandwich"
 	InfluxPwd    = os.Getenv("InfluxPwd")
+	EnableInflux *bool
+	CacheSize    = 10
 )
 
 func parseFlags() {
@@ -34,6 +36,8 @@ func parseFlags() {
 	syncTime := flag.Int("t", 60, "auto sync time")
 	influxUrl := flag.String("influx", "", "influx db url")
 	influxToken := flag.String("token", "", "influx db token")
+	EnableInflux = flag.Bool("enable", false, "enable influx")
+	cache := flag.Int("size", CacheSize, "cache size[mb]")
 	flag.Parse()
 
 	if *port != "" {
@@ -63,5 +67,9 @@ func parseFlags() {
 
 	if *influxToken != "" {
 		InfluxToken = *influxToken
+	}
+
+	if *cache != 0 {
+		CacheSize = *cache
 	}
 }

@@ -49,6 +49,9 @@ var influxC influxdb2.Client
 var writeApi api.WriteAPI
 
 func initInflux() {
+	if !preCheck() {
+		return
+	}
 	log.Println("init influxdb")
 	if InfluxToken != "" {
 		influxC = influxdb2.NewClient(InfluxUrl, InfluxToken)
@@ -72,6 +75,9 @@ func initInflux() {
 // 写入数据
 // stat 放行pass 禁止block 熔断break
 func addInfluxData(req *http.Request, stat string) {
+	if !preCheck() {
+		return
+	}
 	p := influxdb2.NewPoint(
 		SandwichMeasure,
 		map[string]string{
@@ -91,10 +97,17 @@ func addInfluxData(req *http.Request, stat string) {
 }
 
 func autoFlush() {
+	if !preCheck() {
+		return
+	}
 	ticker := time.Tick(1 * time.Second)
 	for range ticker {
 		writeApi.Flush()
 	}
+}
+
+func preCheck() bool {
+	return *EnableInflux
 }
 
 // 查询数据 无需聚合运算
@@ -108,7 +121,7 @@ func getInfluxData(query string) []map[string]interface{} {
 		return nil
 	}
 	for result.Next() {
-		//log.Printf("%+v", result.Record().Values())
+		// log.Printf("%+v", result.Record().Values())
 		res = append(res, result.Record().Values())
 	}
 	return res

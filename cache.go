@@ -58,8 +58,18 @@ func freshCache(b []byte) {
 	lock := sync.Mutex{}
 	lock.Lock()
 	defer lock.Unlock()
+	if len(SandwichCache) > CacheSize*1024*1024 {
+		clearCache(&lock)
+	}
 	SandwichCache = b
 	log.Println("fresh static html to cache")
+}
+
+func clearCache(lock *sync.Mutex) {
+	lock.Lock()
+	defer lock.Unlock()
+	SandwichCache = []byte{}
+	log.Println("reach cache-size limit")
 }
 
 // 压缩html文件
