@@ -36,11 +36,13 @@ jobs:
 
     - name: CreateMD
       run: |
-        echo "# 🚀 New Release" >> $MD
-        echo "# 🤖 Published by bot" >> $MD
-        echo "## 📄 What‘s new" >> $MD
-        echo "" >> $MD
-        echo "${{ github.event.head_commit.message }}" >> $MD
+        data=""
+        echo "# 🚀 New Release" >> $data
+        echo "# 🤖 Published by bot" >> $data
+        echo "## 📄 What‘s new" >> $data
+        echo "" >> $data
+        echo "${{ github.event.head_commit.message }}" >> $data
+        echo "MD=$data" >> $GITHUB_ENV
 
     - name: Create Release
       id: create_release
