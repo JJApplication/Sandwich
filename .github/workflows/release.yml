@@ -22,8 +22,11 @@ jobs:
       with:
         go-version: 1.19
 
+    - name: Check
+      run: pwd && ls
+      
     - name: Build
-      run: go build -mod=mod -ldflags='-w -s' --trimpath -v -o sandwich
+      run: go build -ldflags='-w -s' --trimpath -v -o sandwich
 
     - name: Done
       run: echo "build success"
