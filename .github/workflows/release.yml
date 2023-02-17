@@ -23,7 +23,7 @@ jobs:
         go-version: 1.19
 
     - name: Get date
-      run: echo "DATE=$(date +"%Y-%m-%d-%H:%M:%S")" >> $GITHUB_ENV
+      run: echo "DATE=$(date +"%Y-%m-%d-%H:%M:%S")" >> $GITHUB_ENV && echo "MD=""" >> $GITHUB_ENV
 
     - name: Check
       run: pwd && ls && echo "${{ env.DATE }}"
@@ -36,7 +36,6 @@ jobs:
 
     - name: CreateMD
       run: |
-        echo "MD=''" >> $GITHUB_ENV
         echo "# 🚀 New Release" >> $MD
         echo "# 🤖 Published by bot" >> $MD
         echo "## 📄 What‘s new" >> $MD
