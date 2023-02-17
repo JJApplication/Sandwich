@@ -38,7 +38,7 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         tag_name: ${{ github.ref }}
-        release_name: Sandwich ${{ github.ref }}
+        release_name: Sandwich ${{ github.run_id }}
         body: 🚀 New Release.
               
               🤖 Published by bot

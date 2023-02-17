@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 go clean
-go build --trimpath -o sandwich .
+go build -mod=mod --trimpath -o sandwich .
