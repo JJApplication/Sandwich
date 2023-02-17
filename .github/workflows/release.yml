@@ -34,22 +34,24 @@ jobs:
     - name: Done
       run: echo "build success"
 
+    - name: CreateMD
+      run: |
+        echo "MD=''" >> $GITHUB_ENV
+        echo "# 🚀 New Release" >> $MD
+        echo "# 🤖 Published by bot" >> $MD
+        echo "## 📄 What‘s new" >> $MD
+        echo "" >> $MD
+        echo "${{ github.event.head_commit.message }}" >> $MD
+
     - name: Create Release
       id: create_release
       uses: actions/create-release@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: Tag ${{ github.run_id }}
+        tag_name: ${{ github.run_id }}
         release_name: Sandwich ${{ env.DATE }}
-        body: 🚀 New Release.
-              
-              🤖 Published by bot
-          
-              📄 What‘s new
-
-
-              ${{ github.event.head_commit.message }}
+        body: ${{ env.MD }}
         draft: false
         prerelease: false
 
