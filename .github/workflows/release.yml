@@ -24,7 +24,10 @@ jobs:
 
     - name: Check
       run: pwd && ls
-      
+
+    - name: Get date
+      run: echo "DATE=$(date +"%Y-%m-%d-%H:%M:%S")" >> $GITHUB_ENV
+
     - name: Build
       run: go build -mod=mod -ldflags='-w -s' --trimpath -v -o sandwich
 
@@ -37,8 +40,8 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag_name: ${{ github.ref }}
-        release_name: Sandwich ${{ github.run_id }}
+        tag_name: ${{ github.sha }}
+        release_name: Sandwich ${{ env.DATE }}
         body: 🚀 New Release.
               
               🤖 Published by bot
