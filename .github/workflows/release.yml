@@ -26,7 +26,7 @@ jobs:
       run: pwd && ls
       
     - name: Build
-      run: go build -ldflags='-w -s' --trimpath -v -o sandwich
+      run: go build -mod=mod -ldflags='-w -s' --trimpath -v -o sandwich
 
     - name: Done
       run: echo "build success"
