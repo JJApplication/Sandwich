@@ -23,6 +23,10 @@ func newProxy() *httputil.ReverseProxy {
 	proxy := &httputil.ReverseProxy{
 		Director: func(request *http.Request) {
 			request.URL = ParseRequest(request)
+			if *Debug {
+				log.Printf("[DEBUG] parse request, URL: %+v\n",
+					request.URL)
+			}
 		},
 		Transport:     nil,
 		FlushInterval: FlushInterval,
@@ -33,12 +37,22 @@ func newProxy() *httputil.ReverseProxy {
 			return nil
 		},
 		ErrorHandler: func(writer http.ResponseWriter, request *http.Request, err error) {
+			if *Debug {
+				log.Printf("[DEBUG] host: %s, url: %s, proto: %s, method: %s\n",
+					request.Host, request.URL, request.Proto, request.Method)
+			}
 			// 熔断判断
 			if err.Error() == "unsupported protocol scheme \"Sandwich\"" {
+				if *Debug {
+					log.Printf("[DEBUG] unsupported protocol scheme Sandwich")
+				}
 				writer.WriteHeader(http.StatusBadGateway)
 				return
 			}
 			if err.Error() == "http: no Host in request URL" {
+				if *Debug {
+					log.Printf("[DEBUG] http: no Host in request URL")
+				}
 				writer.WriteHeader(http.StatusTooManyRequests)
 				Cache(writer, request)
 				return

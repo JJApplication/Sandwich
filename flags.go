@@ -27,6 +27,7 @@ var (
 	InfluxPwd    = os.Getenv("InfluxPwd")
 	EnableInflux *bool
 	CacheSize    = 10
+	Debug        *bool
 )
 
 func parseFlags() {
@@ -38,6 +39,7 @@ func parseFlags() {
 	influxToken := flag.String("token", "", "influx db token")
 	EnableInflux = flag.Bool("enable", false, "enable influx")
 	cache := flag.Int("size", CacheSize, "cache size[mb]")
+	Debug = flag.Bool("debug", false, "debug mode")
 	flag.Parse()
 
 	if *port != "" {
