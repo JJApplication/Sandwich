@@ -28,6 +28,9 @@ var (
 	EnableInflux *bool
 	CacheSize    = 10
 	Debug        *bool
+	// NoEngineDomain NoEngine域名和服务映射
+	NoEngineDomain *string // eg: blog.renj.io -> BlogFront
+	NoEngineApp    *string // eg: BlogFront -> 127.0.0.1:8080
 )
 
 func parseFlags() {
@@ -40,6 +43,8 @@ func parseFlags() {
 	EnableInflux = flag.Bool("enable", false, "enable influx")
 	cache := flag.Int("size", CacheSize, "cache size[mb]")
 	Debug = flag.Bool("debug", false, "debug mode")
+	NoEngineDomain = flag.String("ngd", "", "NoEngine Domain")
+	NoEngineApp = flag.String("nga", "", "NoEngine Apps")
 	flag.Parse()
 
 	if *port != "" {

@@ -10,7 +10,6 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"strings"
 	"time"
 )
 
@@ -73,7 +72,6 @@ func Proxy() *httputil.ReverseProxy {
 // ParseRequest 代理从Nginx拿到的host 都是带有域名的
 // 直接显示为localhost的地址为不可信地址 直接返回错误
 func ParseRequest(req *http.Request) *url.URL {
-	uri := req.RequestURI
 	host := req.Host
 
 	if !breaker.Get(host) {
@@ -87,34 +85,6 @@ func ParseRequest(req *http.Request) *url.URL {
 	}
 	defer limiter.ReleaseConn()
 
-	if !resolveDomain(host) {
-		addInfluxData(req, StatNotFound)
-		log.Printf("domain resolved failed: [%s]\n", host)
-		return nil
-	}
-
-	dst := domainReflect(host)
-	if dst == nil || len(dst) == 0 {
-		addInfluxData(req, StatNotFound)
-		log.Printf("domain reflect failed: [%s]\n", host)
-		return nil
-	}
-
-	addInfluxData(req, StatPass)
-	log.Printf("request recv| %s |uri: %s|host: %s\n", req.Method, uri, host)
-	// log.Printf("request header: %v\n", req.Header)
-	req.URL.Scheme = "http"
-	req.URL.Host = pickOne(dst)
-	return req.URL
-}
-
-func resolveDomain(host string) bool {
-	if host == "" {
-		return false
-	}
-	if strings.Contains(host, "localhost:") || strings.Contains(host, "127.0.0.1:") ||
-		strings.HasPrefix(host, "localhost") || strings.HasPrefix(host, "127.0.0.1") {
-		return false
-	}
-	return true
+	// 检验合法性后 判断是否为前后端转发服务
+	return Resolve(req)
 }
