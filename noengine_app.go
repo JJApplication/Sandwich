@@ -10,6 +10,7 @@ package main
 import (
 	"encoding/json"
 	"log"
+	"sync"
 	"time"
 )
 
@@ -17,30 +18,39 @@ import (
 // BlogFront -> 8888
 // 需要定时刷新 默认1h
 // 通过判断文件修改时间来确定是否读取文件
-var NoEngineAppMap map[string]string
-
-const (
-	refreshTime = 1 * 60 * 60
+var (
+	NoEngineAppMapLock sync.Mutex
+	NoEngineAppMap     map[string]string
 )
 
 func init() {
 	NoEngineAppMap = make(map[string]string)
 }
 
-func loadNoEngineAppMap() {
+func InitNoEngineAppMap() {
+	NoEngineAppMapLock.Lock()
+	defer NoEngineAppMapLock.Unlock()
+	NoEngineAppMap = loadNoEngineAppMap()
+}
+
+func loadNoEngineAppMap() map[string]string {
 	if *NoEngineApp == "" {
 		log.Println("NoEngineApp config is empty")
-		return
+		return nil
 	}
 	data, err := getContent(*NoEngineApp)
 	if err != nil {
 		log.Printf("NoEngineApp config read error:%s\n", err.Error())
-		return
+		return nil
 	}
-	if err = json.Unmarshal(data, &NoEngineAppMap); err != nil {
+
+	tmp := make(map[string]string)
+	if err = json.Unmarshal(data, &tmp); err != nil {
 		log.Printf("NoEngineApp config parse error:%s\n", err.Error())
-		return
+		return nil
 	}
+
+	return tmp
 }
 
 func syncAppMap() {
@@ -49,7 +59,7 @@ func syncAppMap() {
 		select {
 		case <-tick.C:
 			log.Println("reload NoEngineAPPMap active")
-			loadNoEngineAppMap()
+			InitNoEngineAppMap()
 			log.Println("reload NoEngineAPPMap done")
 		}
 	}

@@ -21,6 +21,11 @@ const (
 func newProxy() *httputil.ReverseProxy {
 	proxy := &httputil.ReverseProxy{
 		Director: func(request *http.Request) {
+			if !validateDomain(request.Host) {
+				request.Header.Set(SandwichInternalFlag, SandwichDomainNotAllow)
+				request.URL = &url.URL{Scheme: Sandwich}
+				return
+			}
 			request.URL = ParseRequest(request)
 			if *Debug {
 				log.Printf("[DEBUG] parse request, URL: %+v\n",
@@ -41,18 +46,25 @@ func newProxy() *httputil.ReverseProxy {
 					request.Host, request.URL, request.Proto, request.Method)
 			}
 			// 熔断判断
-			if err.Error() == "unsupported protocol scheme \"Sandwich\"" {
+			switch request.Header.Get(SandwichInternalFlag) {
+			case SandwichBucketLimit:
 				if *Debug {
-					log.Printf("[DEBUG] unsupported protocol scheme Sandwich")
+					log.Printf("[DEBUG] reach breaker limit")
 				}
 				writer.WriteHeader(http.StatusBadGateway)
 				return
-			}
-			if err.Error() == "http: no Host in request URL" {
+			case SandwichReqLimit:
+				if *Debug {
+					log.Printf("[DEBUG] reach flow control limit")
+				}
+				writer.WriteHeader(http.StatusTooManyRequests)
+				Cache(writer, request)
+				return
+			case SandwichDomainNotAllow:
 				if *Debug {
 					log.Printf("[DEBUG] http: no Host in request URL")
 				}
-				writer.WriteHeader(http.StatusTooManyRequests)
+				writer.WriteHeader(http.StatusForbidden)
 				Cache(writer, request)
 				return
 			}
@@ -76,12 +88,14 @@ func ParseRequest(req *http.Request) *url.URL {
 
 	if !breaker.Get(host) {
 		addInfluxData(req, StatBreak)
-		return &url.URL{Host: "localhost", Scheme: Sandwich}
+		req.Header.Set(SandwichInternalFlag, SandwichBucketLimit)
+		return &url.URL{Scheme: Sandwich}
 	}
 	if !limiter.GetConn() {
 		addInfluxData(req, StatAbort)
 		log.Printf("client %s has been limit to request\n", req.RemoteAddr)
-		return &url.URL{Host: "", Scheme: "http"}
+		req.Header.Set(SandwichInternalFlag, SandwichReqLimit)
+		return &url.URL{Scheme: Sandwich}
 	}
 	defer limiter.ReleaseConn()
 
