@@ -29,6 +29,10 @@ func resolveFrontend(req *http.Request) *url.URL {
 	if app.Frontend != "" {
 		log.Printf("doamin resolved -> [%s] : [%s]\n", host, app)
 		port := NoEngineAppMap[app.Frontend]
+		if port == "" {
+			log.Printf("app port not found: [%s]\n", app.Frontend)
+			return nil
+		}
 		addInfluxData(req, StatPass)
 		req.URL.Scheme = "http"
 		req.URL.Host = fmt.Sprintf("127.0.0.1:%s", port)

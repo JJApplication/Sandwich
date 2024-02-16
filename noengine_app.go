@@ -54,7 +54,7 @@ func loadNoEngineAppMap() map[string]string {
 }
 
 func syncAppMap() {
-	tick := time.NewTicker(refreshTime * time.Second)
+	tick := time.NewTicker(refreshTime2 * time.Second)
 	for {
 		select {
 		case <-tick.C:

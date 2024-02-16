@@ -23,8 +23,6 @@ import (
 var SandwichCache []byte
 
 func Cache(w http.ResponseWriter, r *http.Request) {
-	w.Header().Add("Proxy-Server", ProxyServer)
-	w.Header().Add("Proxy-Copyright", Copyright)
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	if checkCache() {
 		writeResponse(w, r, SandwichCache)

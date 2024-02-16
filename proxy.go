@@ -37,6 +37,7 @@ func newProxy() *httputil.ReverseProxy {
 		ErrorLog:      nil,
 		BufferPool:    nil,
 		ModifyResponse: func(response *http.Response) error {
+			nocache(response)
 			addHeader(response)
 			return nil
 		},
