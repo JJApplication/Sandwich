@@ -21,8 +21,6 @@ func main() {
 	initMongo()
 	initInflux()
 	initPool()
-	// load domain list
-	InitDomainAllowList()
 	// load noengine map
 	InitNoEngineDomainMap()
 	InitNoEngineAppMap()
@@ -30,7 +28,6 @@ func main() {
 	// start sync jobs
 	go syncAppMap()
 	go syncDomainMap()
-	go syncDomainList()
 	log.Println("proxy server start")
 	err := http.ListenAndServe(fmt.Sprintf(":%s", Port), Proxy())
 	if err != nil {

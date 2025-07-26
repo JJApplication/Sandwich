@@ -18,4 +18,6 @@ const (
 	SandwichReqLimit = "SandwichReqLimit"
 	// SandwichDomainNotAllow 域名不支持
 	SandwichDomainNotAllow = "SandwichDomainNotAllow"
+	// SandwichBackendError 后端服务异常 针对API类服务异常
+	SandwichBackendError = "SandwichBackendError"
 )

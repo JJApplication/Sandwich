@@ -31,7 +31,6 @@ var (
 	// NoEngineDomain NoEngine域名和服务映射
 	NoEngineDomain *string // eg: blog.renj.io -> BlogFront
 	NoEngineApp    *string // eg: BlogFront -> 127.0.0.1:8080
-	DomainList     *string // 绑定的域名列表
 )
 
 func parseFlags() {
@@ -46,7 +45,6 @@ func parseFlags() {
 	Debug = flag.Bool("debug", false, "debug mode")
 	NoEngineDomain = flag.String("ngd", "", "NoEngine Domain")
 	NoEngineApp = flag.String("nga", "", "NoEngine Apps")
-	DomainList = flag.String("dl", "", "Domain Allow list")
 	flag.Parse()
 
 	if *port != "" {

@@ -8,10 +8,8 @@
 package main
 
 import (
-	"encoding/json"
 	"log"
 	"sync"
-	"time"
 )
 
 // 域名允许列表
@@ -26,26 +24,20 @@ func init() {
 	DomainAllowList = make(map[string]struct{})
 }
 
-func InitDomainAllowList() {
+func InitDomainAllowList(domainData *noengineDomainMap) {
 	domainAllowListLock.Lock()
 	defer domainAllowListLock.Unlock()
-	DomainAllowList = loadDomainAllowList()
+	DomainAllowList = loadDomainAllowList(domainData)
 }
 
-func loadDomainAllowList() map[string]struct{} {
-	data, err := getContent(*DomainList)
-	if err != nil {
-		log.Printf("DomainList config read error:%s\n", err.Error())
-		return nil
-	}
-	var dl []string
-	if err = json.Unmarshal(data, &dl); err != nil {
-		log.Printf("DomainList config parse error:%s\n", err.Error())
+func loadDomainAllowList(domainData *noengineDomainMap) map[string]struct{} {
+	if domainData == nil {
+		log.Println("DomainList config read empty")
 		return nil
 	}
 
 	tmp := make(map[string]struct{})
-	for _, domain := range dl {
+	for _, domain := range domainData.Domains {
 		tmp[domain] = struct{}{}
 	}
 
@@ -56,16 +48,4 @@ func loadDomainAllowList() map[string]struct{} {
 func validateDomain(domain string) bool {
 	_, ok := DomainAllowList[domain]
 	return ok
-}
-
-func syncDomainList() {
-	tick := time.NewTicker(refreshTime * time.Second)
-	for {
-		select {
-		case <-tick.C:
-			log.Println("reload DomainList active")
-			InitDomainAllowList()
-			log.Println("reload DomainList done")
-		}
-	}
 }

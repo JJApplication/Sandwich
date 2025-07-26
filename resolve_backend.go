@@ -20,12 +20,14 @@ func resolveBackend(req *http.Request) *url.URL {
 	app := req.Header.Get(ProxyApp)
 	if app == "" {
 		log.Println("proxy -> None error: app is nil")
+		req.Header.Set(SandwichInternalFlag, SandwichBackendError)
 		return nil
 	}
 	// 获取后端服务对应的域名
 	proxyApp := getDomainByApp(app)
 	if proxyApp == "" {
 		log.Printf("proxy -> %s error: app domain is nil", app)
+		req.Header.Set(SandwichInternalFlag, SandwichBackendError)
 		return nil
 	}
 	// 获取domain->port映射
@@ -33,6 +35,7 @@ func resolveBackend(req *http.Request) *url.URL {
 	if dst == nil || len(dst) == 0 {
 		addInfluxData(req, StatNotFound)
 		log.Printf("domain reflect failed: [%s]\n", proxyApp)
+		req.Header.Set(SandwichInternalFlag, SandwichBackendError)
 		return nil
 	}
 
@@ -41,5 +44,9 @@ func resolveBackend(req *http.Request) *url.URL {
 	req.URL.Scheme = "http"
 	req.URL.Host = pickOne(dst)
 	log.Printf("backend -> [%s] : [%s]\n", app, req.URL.Host)
+
+	if req.URL == nil {
+		req.Header.Set(SandwichInternalFlag, SandwichBackendError)
+	}
 	return req.URL
 }

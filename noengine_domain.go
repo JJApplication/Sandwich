@@ -14,6 +14,11 @@ import (
 	"time"
 )
 
+type noengineDomainMap struct {
+	Domains   []string             `json:"domains"`   // 允许域名
+	DomainMap map[string]domainMap `json:"domainMap"` // 域名映射
+}
+
 // NoEngineDomainMap 获取NoEngine服务的域名映射
 // 仅针对前端服务
 // blog.renj.io -> {front: BlogFront, back: Blog}
@@ -34,10 +39,16 @@ func init() {
 func InitNoEngineDomainMap() {
 	NoEngineDomainMapLock.Lock()
 	defer NoEngineDomainMapLock.Unlock()
-	NoEngineDomainMap = loadNoEngineDomainMap()
+	noengineData := loadNoEngineDomainMap()
+	if noengineData == nil {
+		NoEngineDomainMap = make(map[string]domainMap)
+	} else {
+		NoEngineDomainMap = noengineData.DomainMap
+	}
+	InitDomainAllowList(noengineData)
 }
 
-func loadNoEngineDomainMap() map[string]domainMap {
+func loadNoEngineDomainMap() *noengineDomainMap {
 	if *NoEngineDomain == "" {
 		log.Println("NoEngineDomain config is empty")
 		return nil
@@ -48,7 +59,7 @@ func loadNoEngineDomainMap() map[string]domainMap {
 		return nil
 	}
 
-	var tmp map[string]domainMap
+	var tmp *noengineDomainMap
 	if err = json.Unmarshal(data, &tmp); err != nil {
 		log.Printf("NoEngineDomain config parse error:%s\n", err.Error())
 		return nil
