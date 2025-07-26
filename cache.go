@@ -10,7 +10,6 @@ package main
 
 import (
 	"compress/gzip"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"strings"
@@ -22,19 +21,24 @@ import (
 
 var SandwichCache []byte
 
-func Cache(w http.ResponseWriter, r *http.Request) {
+const (
+	Forbidden = iota
+	Unavailable
+)
+
+func Cache(w http.ResponseWriter, r *http.Request, resType int) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	if checkCache() {
-		writeResponse(w, r, SandwichCache)
+	switch resType {
+	case Forbidden:
+		writeResponse(w, r, ForbiddenPage)
 		return
-	}
-	s, err := ioutil.ReadFile("sandwich.html")
-	if err != nil {
+	case Unavailable:
+		writeResponse(w, r, UnavailablePage)
+		return
+	default:
 		writeResponse(w, r, []byte(ERRORSendProxy))
 		return
 	}
-	freshCache(s)
-	writeResponse(w, r, s)
 }
 
 func writeResponse(w http.ResponseWriter, request *http.Request, data []byte) {

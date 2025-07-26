@@ -59,19 +59,19 @@ func newProxy() *httputil.ReverseProxy {
 					log.Printf("[DEBUG] reach flow control limit")
 				}
 				writer.WriteHeader(http.StatusTooManyRequests)
-				Cache(writer, request)
+				Cache(writer, request, Forbidden)
 				return
 			case SandwichDomainNotAllow:
 				if *Debug {
 					log.Printf("[DEBUG] http: no Host in request URL")
 				}
 				writer.WriteHeader(http.StatusForbidden)
-				Cache(writer, request)
+				Cache(writer, request, Forbidden)
 				return
 			}
 			breaker.Set(request.Host)
 			log.Printf("proxy connect error: %s\n", err.Error())
-			Cache(writer, request)
+			Cache(writer, request, Unavailable)
 		},
 	}
 
