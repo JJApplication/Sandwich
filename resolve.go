@@ -18,6 +18,8 @@ import (
 const (
 	Backend = iota
 	Frontend
+	FrontendFromConf
+	BackendFromConf
 )
 
 const (
@@ -25,6 +27,9 @@ const (
 	ProxyApp      = "X-Gateway-App"   // 要转到的后端服务
 )
 
+// Resolve 解析是否为前后端服务 进行分别转发
+// 配置优先级 > Header的优先级
+// 配置为{frontend: xx, backend: xx} 纯前后端服务时对应的另一套配置为空
 func Resolve(req *http.Request) *url.URL {
 	if *Debug {
 		log.Printf("[DEBUG] resolve url: %s\n", req.RequestURI)
@@ -35,7 +40,9 @@ func Resolve(req *http.Request) *url.URL {
 	case Frontend:
 		return resolveFrontend(req)
 	case Backend:
-		return resolveBackend(req)
+		return resolveBackend(req, false)
+	case BackendFromConf:
+		return resolveBackend(req, true)
 	default:
 		return resolveFrontend(req)
 	}
@@ -47,10 +54,20 @@ func ResolveSrv(r *http.Request) int {
 }
 
 func resolveType(req *http.Request) int {
-	backHeader := req.Header.Get(BackendHeader)
-	if backHeader == "yes" {
-		return Backend
+	host := req.Host
+	app := NoEngineDomainMap[host]
+	if app.Frontend != "" && app.Backend != "" {
+		backHeader := req.Header.Get(BackendHeader)
+		if backHeader == "yes" {
+			return Backend
+		}
+
+		return Frontend
 	}
 
-	return Frontend
+	if app.Frontend != "" {
+		return FrontendFromConf
+	} else {
+		return BackendFromConf
+	}
 }

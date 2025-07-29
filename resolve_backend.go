@@ -15,9 +15,16 @@ import (
 
 // 后端服务的API转发
 
-func resolveBackend(req *http.Request) *url.URL {
-	// 获取要转发到的后端服务名
-	app := req.Header.Get(ProxyApp)
+func resolveBackend(req *http.Request, fromConf bool) *url.URL {
+	host := req.Host
+	var app string
+	if fromConf {
+		app = NoEngineDomainMap[host].Backend
+	} else {
+		// 获取要转发到的后端服务名
+		app = req.Header.Get(ProxyApp)
+	}
+
 	if app == "" {
 		log.Println("proxy -> None error: app is nil")
 		req.Header.Set(SandwichInternalFlag, SandwichBackendError)
