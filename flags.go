@@ -27,6 +27,7 @@ var (
 	InfluxPwd    = os.Getenv("InfluxPwd")
 	EnableInflux *bool
 	CacheSize    = 10
+	StrictMode   *bool // 启用http严格返回模式 此情况下非2xx状态码后的响应无效
 	Debug        *bool
 	// NoEngineDomain NoEngine域名和服务映射
 	NoEngineDomain *string // eg: blog.renj.io -> BlogFront
@@ -42,6 +43,7 @@ func parseFlags() {
 	influxToken := flag.String("token", "", "influx db token")
 	EnableInflux = flag.Bool("enable", false, "enable influx")
 	cache := flag.Int("size", CacheSize, "cache size[mb]")
+	StrictMode = flag.Bool("strict", false, "strict mode")
 	Debug = flag.Bool("debug", false, "debug mode")
 	NoEngineDomain = flag.String("ngd", "", "NoEngine Domain")
 	NoEngineApp = flag.String("nga", "", "NoEngine Apps")

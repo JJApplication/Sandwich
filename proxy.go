@@ -52,31 +52,29 @@ func newProxy() *httputil.ReverseProxy {
 				if *Debug {
 					log.Printf("[DEBUG] reach breaker limit")
 				}
-				writer.WriteHeader(http.StatusBadGateway)
+				writer.WriteHeader(http.StatusTooManyRequests)
 				return
 			case SandwichReqLimit:
 				if *Debug {
 					log.Printf("[DEBUG] reach flow control limit")
 				}
-				writer.WriteHeader(http.StatusTooManyRequests)
-				Cache(writer, request, Forbidden)
+				Cache(http.StatusTooManyRequests, writer, request, Forbidden)
 				return
 			case SandwichDomainNotAllow:
 				if *Debug {
 					log.Printf("[DEBUG] http: no Host in request URL")
 				}
-				writer.WriteHeader(http.StatusForbidden)
-				Cache(writer, request, Forbidden)
+				Cache(http.StatusForbidden, writer, request, Forbidden)
 				return
 			case SandwichBackendError:
 				if *Debug {
 					log.Printf("[DEBUG] backend: service is down")
 				}
-				Cache(writer, request, Unavailable)
+				Cache(http.StatusBadGateway, writer, request, Unavailable)
 			}
 			breaker.Set(request.Host)
 			log.Printf("proxy connect error: %s\n", err.Error())
-			Cache(writer, request, Unavailable)
+			Cache(http.StatusBadGateway, writer, request, Unavailable)
 		},
 	}
 

@@ -26,8 +26,13 @@ const (
 	Unavailable
 )
 
-func Cache(w http.ResponseWriter, r *http.Request, resType int) {
+func Cache(code int, w http.ResponseWriter, r *http.Request, resType int) {
+	if *StrictMode {
+		strictWrite(code, w)
+		return
+	}
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
 	switch resType {
 	case Forbidden:
 		writeResponse(w, r, ForbiddenPage)
@@ -39,6 +44,11 @@ func Cache(w http.ResponseWriter, r *http.Request, resType int) {
 		writeResponse(w, r, []byte(ERRORSendProxy))
 		return
 	}
+}
+
+func strictWrite(code int, w http.ResponseWriter) {
+	w.WriteHeader(code)
+	w.Write([]byte(ERRORSendProxy))
 }
 
 func writeResponse(w http.ResponseWriter, request *http.Request, data []byte) {
