@@ -48,7 +48,7 @@ const (
 var influxC influxdb2.Client
 var writeApi api.WriteAPI
 
-func initInflux() {
+func InitInflux() {
 	if !preCheck() {
 		return
 	}

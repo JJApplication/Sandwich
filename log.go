@@ -6,14 +6,15 @@ Created: 2021/12/12 by Landers
 package main
 
 import (
+	"fmt"
 	"log"
 )
 
-const (
-	PREFIX = "[Sandwich] "
+var (
+	PREFIX = fmt.Sprintf("[%s] ", Sandwich)
 )
 
-func initLog() {
+func InitLog() {
 	log.SetPrefix(PREFIX)
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 }

@@ -33,7 +33,7 @@ func (a *DaoAPP) CollectionName() string {
 	return "microservice"
 }
 
-func initMongo() {
+func InitMongo() {
 	log.Println("init mongodb")
 	err := mgm.SetDefaultConfig(&mgm.Config{CtxTimeout: 1 * time.Second}, DBName, options.Client().ApplyURI(MongoUrl))
 	if err != nil {

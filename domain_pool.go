@@ -18,10 +18,10 @@ var domainPool map[string][]int
 // 更加安全的端口映射表
 var domainPoolSync sync.Mutex
 
-func initPool() {
+func InitPool() {
 	domainPoolSync = sync.Mutex{}
 	domainPool = make(map[string][]int, 10)
-	initLog()
+	InitLog()
 	getDataFromMongo()
 
 	go syncJob()
