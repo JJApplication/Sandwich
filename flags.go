@@ -31,7 +31,11 @@ var (
 	Debug        *bool
 	// NoEngineDomain NoEngine域名和服务映射
 	NoEngineDomain *string // eg: blog.renj.io -> BlogFront
-	NoEngineApp    *string // eg: BlogFront -> 127.0.0.1:8080
+
+	HeliosAddress *string
+	FrontendFlag  = "X-JJAPP-Internal-Front"
+	FrontendHost  = "127.0.0.1"
+	FrontendPort  = 7777
 )
 
 func parseFlags() {
@@ -46,7 +50,7 @@ func parseFlags() {
 	StrictMode = flag.Bool("strict", false, "strict mode")
 	Debug = flag.Bool("debug", false, "debug mode")
 	NoEngineDomain = flag.String("ngd", "", "NoEngine Domain")
-	NoEngineApp = flag.String("nga", "", "NoEngine Apps")
+	HeliosAddress = flag.String("helios", "/var/run/Helios.sock", "HeliosAddress")
 	flag.Parse()
 
 	if *port != "" {

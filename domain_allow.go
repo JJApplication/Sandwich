@@ -8,7 +8,9 @@
 package main
 
 import (
+	"fmt"
 	"log"
+	"net/http"
 	"sync"
 )
 
@@ -45,7 +47,13 @@ func loadDomainAllowList(domainData *noengineDomainMap) map[string]struct{} {
 }
 
 // 校验域名是否绑定
-func validateDomain(domain string) bool {
+// 内部请求无需校验
+func validateDomain(req *http.Request) bool {
+	domain := req.Host
+	if (domain == fmt.Sprintf(":%s", Port) || domain == fmt.Sprintf("127.0.0.1:%s", Port)) &&
+		req.Header.Get(BackendHeader) != "" {
+		return true
+	}
 	_, ok := DomainAllowList[domain]
 	return ok
 }

@@ -22,9 +22,10 @@ const (
 	BackendFromConf
 )
 
-const (
-	BackendHeader = "X-Gateway-Local" // 后端服务标识
-	ProxyApp      = "X-Gateway-App"   // 要转到的后端服务
+var (
+	FrontendHostHeader = "X-JJAPP-Internal-Host-Front" // 前端服务标识
+	BackendHeader      = "X-JJAPP-Local"               // 后端服务标识
+	ProxyApp           = "X-JJAPP-App"                 // 要转到的后端服务
 )
 
 // Resolve 解析是否为前后端服务 进行分别转发

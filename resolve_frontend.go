@@ -28,15 +28,18 @@ func resolveFrontend(req *http.Request) *url.URL {
 	app := NoEngineDomainMap[host]
 	if app.Frontend != "" {
 		log.Printf("doamin resolved -> [%s] : [%s]\n", host, app)
-		port := NoEngineAppMap[app.Frontend]
-		if port == "" {
+		if FrontendPort <= 0 {
 			log.Printf("app port not found: [%s]\n", app.Frontend)
 			return nil
 		}
 		addInfluxData(req, StatPass)
 		req.URL.Scheme = "http"
-		req.URL.Host = fmt.Sprintf("127.0.0.1:%s", port)
-		log.Printf("frontend -> [%s] : [%s]\n", app, port)
+		req.URL.Host = fmt.Sprintf("%s:%d", FrontendHost, FrontendPort)
+		req.Header.Set("Host", host)
+		req.Header.Set(FrontendFlag, app.Frontend)
+		// 转发请求必须携带实际HOST信息
+		req.Header.Set(FrontendHostHeader, host)
+		log.Printf("frontend -> [%s] : [%d]\n", app, FrontendPort)
 		return req.URL
 	}
 	log.Printf("domain resolved failed: [%s]\n", host)

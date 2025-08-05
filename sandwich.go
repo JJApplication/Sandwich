@@ -23,10 +23,10 @@ func main() {
 	initPool()
 	// load noengine map
 	InitNoEngineDomainMap()
-	InitNoEngineAppMap()
+	// load helios config
+	InitHeliosConfig()
 
 	// start sync jobs
-	go syncAppMap()
 	go syncDomainMap()
 	log.Println("proxy server start")
 	err := http.ListenAndServe(fmt.Sprintf(":%s", Port), Proxy())
