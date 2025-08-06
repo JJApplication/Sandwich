@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"log"
 	"sync"
-	"time"
 )
 
 // 域名端口映射表
@@ -21,7 +20,6 @@ var domainPoolSync sync.Mutex
 func InitPool() {
 	domainPoolSync = sync.Mutex{}
 	domainPool = make(map[string][]int, 10)
-	InitLog()
 	getDataFromMongo()
 
 	go syncJob()
@@ -70,17 +68,5 @@ func getDataFromMongo() {
 	log.Println("domainPool is:")
 	for k, v := range domainPool {
 		log.Printf("[%s]: %+v\n", k, v)
-	}
-}
-
-// 异步从数据库同步端口数据
-func syncJob() {
-	tick := time.NewTicker(SyncTime)
-	for {
-		select {
-		case <-tick.C:
-			log.Println("sync job active")
-			getDataFromMongo()
-		}
 	}
 }

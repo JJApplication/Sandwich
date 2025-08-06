@@ -107,7 +107,7 @@ func autoFlush() {
 }
 
 func preCheck() bool {
-	return *EnableInflux
+	return EnableInflux
 }
 
 // 查询数据 无需聚合运算

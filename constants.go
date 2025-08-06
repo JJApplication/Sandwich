@@ -37,12 +37,18 @@ var (
 	FrontendPort  int
 )
 
+var (
+	FrontendHostHeader string // 前端服务HOST标识
+	BackendHeader      string // 后端服务标识
+	ProxyApp           string // 要转到的后端服务
+)
+
 func InitConfigFromEnvs() {
 	Host = LoaderEnv("Host").String("127.0.0.1")
 	Port = LoaderEnv("Port").String("8888")
 	MongoUrl = LoaderEnv("MongoUrl").String("mongodb://localhost:27017")
 	DBName = LoaderEnv("DBName").String("ApolloMongo")
-	SyncTime = time.Duration(LoaderEnv("SyncTime").Int(60)) * time.Second
+	SyncTime = time.Duration(LoaderEnv("SyncTime").Int(60*5)) * time.Second
 	InfluxUrl = LoaderEnv("InfluxUrl").String("http://127.0.0.1:8086")
 	InfluxToken = LoaderEnv("InfluxToken").String("")
 	InfluxOrg = LoaderEnv("InfluxOrg").String(Sandwich)
@@ -52,9 +58,19 @@ func InitConfigFromEnvs() {
 	CacheSize = LoaderEnv("CacheSize").Int(10)
 	StrictMode = LoaderEnv("StrictMode").Bool(false)
 	Debug = LoaderEnv("Debug").Bool(false)
-	NoEngineDomain = LoaderEnv("NoEngineDomain").String("")
+	NoEngineDomain = LoaderEnv("NoEngineDomain").String("domain.json")
 	HeliosAddress = LoaderEnv("HeliosAddress").String("/var/run/Helios.sock")
-	FrontendFlag = LoaderEnv("FrontendFlag").String("X-JJAPP-Internal-Front")
+	FrontendFlag = LoaderEnv("FrontendFlag").String("X-Proxy-Internal-Front")
 	FrontendHost = LoaderEnv("FrontendHost").String("127.0.0.1")
 	FrontendPort = LoaderEnv("FrontendPort").Int(7777)
+
+	FrontendHostHeader = LoaderEnv("FrontendHostHeader").String("X-Proxy-Internal-Host")
+	//BackendHeader = LoaderEnv("BackendFlag").String("X-Proxy-Internal-Local")
+	//ProxyApp = LoaderEnv("ProxyApp").String("X-Proxy-Backend")
+
+	LIMIT = LoaderEnv("FlowLimit").Int(200)
+	RESET = LoaderEnv("FlowReset").Int(10)
+
+	BreakerLimit = LoaderEnv("BreakerLimit").Int(10)
+	BreakerReset = LoaderEnv("BreakerReset").Int(60)
 }

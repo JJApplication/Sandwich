@@ -15,16 +15,16 @@ import (
 // 在访问的请求数超出限制时 禁止当前客户端请求
 // 无法识别客户端所以是针对全局的请求限制
 
-const (
+var (
 	// LIMIT 限制100/10s
-	LIMIT = 100
+	LIMIT int
 	// RESET 经过RESET * Duration次无请求后，从map中删除定时器
-	RESET = 10
+	RESET int
 )
 
 var limiter *ConnLimiter
 
-func init() {
+func InitLimiter() {
 	limiter = NewConnLimiter(LIMIT)
 	go limiter.AutoRelease()
 }
@@ -61,7 +61,7 @@ func (cl *ConnLimiter) ReleaseConn() {
 
 // AutoRelease 每5秒释放一次桶
 func (cl *ConnLimiter) AutoRelease() {
-	ticker := time.Tick(RESET * time.Second)
+	ticker := time.Tick(time.Duration(RESET) * time.Second)
 	for range ticker {
 		if len(cl.bucket) >= cl.concurrentConn {
 			cl.mux.Lock()

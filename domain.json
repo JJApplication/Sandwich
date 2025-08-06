@@ -1,0 +1,100 @@
+{
+  "domains": [
+    "renj.io",
+    "blog.renj.io",
+    "me.renj.io",
+    "cv.renj.io",
+    "service.renj.io",
+    "app.renj.io",
+    "jjgo.renj.io",
+    "drive.renj.io",
+    "life.renj,io",
+    "gallery.renj.io",
+    "dev.renj.io",
+    "api.renj.io",
+    "page.renj.io",
+    "works.renj.io",
+    "card.renj.io",
+    "proxy.renj.io",
+    "api.renj.io",
+    "plume.renj.io",
+    "plan.renj.io",
+    "mgek.renj.io",
+    "doc.renj.io",
+    "x.renj.io",
+    "pkg.renj.io",
+    "jjapp.renj.io"
+  ],
+  "domainMap": {
+    "renj.io": {
+      "frontend": "Homeland"
+    },
+    "me.renj.io": {
+      "frontend": "Resume"
+    },
+    "cv.renj.io": {
+      "frontend": "CV"
+    },
+    "dev.renj.io": {
+      "frontend": "DevDoc"
+    },
+    "blog.renj.io": {
+      "frontend": "BlogFront",
+      "backend": "Blog"
+    },
+    "gallery.renj.io": {
+      "frontend": "Palace",
+      "backend": "Palace"
+    },
+    "page.renj.io": {
+      "backend": "MySite"
+    },
+    "drive.renj.io": {
+      "frontend": "DriveFront",
+      "backend": "Drive"
+    },
+    "service.renj.io": {
+      "backend": "Apollo"
+    },
+    "card.renj.io": {
+      "frontend": "CardFront",
+      "backend": "Card"
+    },
+    "app.renj.io": {
+      "frontend": "JJServiceFront",
+      "backend": "JJService"
+    },
+    "api.renj.io": {
+      "backend": "JJGo"
+    },
+    "jjgo.renj.io": {
+      "frontend": "JJGoFront"
+    },
+    "mgek.renj.io": {
+      "backend": "Mgek"
+    },
+    "doc.renj.io": {
+      "backend": "MgekDoc"
+    },
+    "works.renj.io": {
+      "frontend": "Works"
+    },
+    "plan.renj.io": {
+      "frontend": "Demeter",
+      "backend": "Demeter"
+    },
+    "pkg.renj.io": {
+      "backend": "BlackHole"
+    },
+    "x.renj.io": {
+      "frontend": "JJAppX"
+    },
+    "plume.renj.io": {
+      "frontend": "PlumeFront",
+      "backend": "Plume"
+    },
+    "jjapp.renj.io": {
+      "frontend": "JJAppDev"
+    }
+  }
+}

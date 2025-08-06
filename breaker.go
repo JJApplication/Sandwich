@@ -19,12 +19,12 @@ import (
 
 var breaker *Breaker
 
-const (
-	BreakerLimit = 10 // 限制内部错误的次数
-	BreakerReset = 60 // 默认的重置时间当服务down时 等待60s后重试
+var (
+	BreakerLimit int // 限制内部错误的次数
+	BreakerReset int // 默认的重置时间当服务down时 等待60s后重试
 )
 
-func init() {
+func InitBreaker() {
 	breaker = NewBreaker()
 	go breaker.Reset()
 }
@@ -80,7 +80,7 @@ func (b *Breaker) add(domain string) {
 
 // Reset 自定重置
 func (b *Breaker) Reset() {
-	ticker := time.Tick(BreakerReset * time.Second)
+	ticker := time.Tick(time.Duration(BreakerReset) * time.Second)
 	for range ticker {
 		for domain, s := range b.serviceBucket {
 			b.mux.Lock()

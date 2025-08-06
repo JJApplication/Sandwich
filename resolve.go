@@ -8,7 +8,6 @@
 package main
 
 import (
-	"log"
 	"net/http"
 	"net/url"
 )
@@ -22,21 +21,13 @@ const (
 	BackendFromConf
 )
 
-var (
-	FrontendHostHeader = "X-JJAPP-Internal-Host-Front" // 前端服务标识
-	BackendHeader      = "X-JJAPP-Local"               // 后端服务标识
-	ProxyApp           = "X-JJAPP-App"                 // 要转到的后端服务
-)
-
 // Resolve 解析是否为前后端服务 进行分别转发
 // 配置优先级 > Header的优先级
 // 配置为{frontend: xx, backend: xx} 纯前后端服务时对应的另一套配置为空
 func Resolve(req *http.Request) *url.URL {
-	if *Debug {
-		log.Printf("[DEBUG] resolve url: %s\n", req.RequestURI)
-		log.Printf("[DEBUG] resolve host: %s\n", req.Host)
-		log.Printf("[DEBUG] resolve headers: %+v\n", req.Header)
-	}
+	debugF("resolve url: %s\n", req.RequestURI)
+	debugF("resolve host: %s\n", req.Host)
+	debugF("resolve headers: %#v\n", req.Header)
 	switch resolveType(req) {
 	case Frontend:
 		return resolveFrontend(req)

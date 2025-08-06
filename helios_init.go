@@ -12,9 +12,9 @@ import (
 
 func InitHeliosConfig() {
 	// 连接到Unix域套接字
-	log.Printf("Start to connect to %s\n", *HeliosAddress)
+	log.Printf("Start to connect to %s\n", HeliosAddress)
 	conn, err := grpc.NewClient(
-		fmt.Sprintf("unix://%s", *HeliosAddress),
+		fmt.Sprintf("unix://%s", HeliosAddress),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	if err != nil {
@@ -37,14 +37,12 @@ func InitHeliosConfig() {
 	}
 
 	// 打印结果
-	if *Debug {
-		log.Printf("Server Info:\n")
-		log.Printf("  Host: %s\n", resp.Host)
-		log.Printf("  Port: %d\n", resp.Port)
-		log.Printf("  Internal Flag: %s\n", resp.InternalFlag)
-		log.Printf("  Internal Local Flag: %s\n", resp.InternalLocalFlag)
-		log.Printf("  Internal Backend Flag: %s\n", resp.InternalBackendFlag)
-	}
+	debug("Server Info:\n")
+	debugF("Host: %s\n", resp.Host)
+	debugF("Port: %d\n", resp.Port)
+	debugF("Internal Flag: %s\n", resp.InternalFlag)
+	debugF("Internal Local Flag: %s\n", resp.InternalLocalFlag)
+	debugF("Internal Backend Flag: %s\n", resp.InternalBackendFlag)
 
 	// 刷新值
 	FrontendHost = resp.Host

@@ -27,7 +27,7 @@ const (
 )
 
 func Cache(code int, w http.ResponseWriter, r *http.Request, resType int) {
-	if *StrictMode || !acceptHTML(r) {
+	if StrictMode || !acceptHTML(r) {
 		strictWrite(code, w)
 		return
 	}

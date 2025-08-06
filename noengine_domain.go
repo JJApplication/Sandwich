@@ -48,11 +48,11 @@ func InitNoEngineDomainMap() {
 }
 
 func loadNoEngineDomainMap() *noengineDomainMap {
-	if *NoEngineDomain == "" {
+	if NoEngineDomain == "" {
 		log.Println("NoEngineDomain config is empty")
 		return nil
 	}
-	data, err := getContent(*NoEngineDomain)
+	data, err := getContent(NoEngineDomain)
 	if err != nil {
 		log.Printf("NoEngineDomain config read error:%s\n", err.Error())
 		return nil

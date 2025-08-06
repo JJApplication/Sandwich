@@ -21,22 +21,17 @@ const (
 func newProxy() *httputil.ReverseProxy {
 	proxy := &httputil.ReverseProxy{
 		Director: func(request *http.Request) {
-			if *Debug {
-				log.Printf("[DEBUG] parse request Header: %#v\n",
-					request.Header)
-				log.Printf("[DEBUG] parse request Host: %#v\n",
-					request.Host)
-			}
+			debugF("parse request Header: %#v\n",
+				request.Header)
+			debugF("parse request Host: %#v\n",
+				request.Host)
 			if !validateDomain(request) {
 				request.Header.Set(SandwichInternalFlag, SandwichDomainNotAllow)
 				request.URL = &url.URL{Scheme: Sandwich}
 				return
 			}
 			request.URL = ParseRequest(request)
-			if *Debug {
-				log.Printf("[DEBUG] parse request, URL: %+v\n",
-					request.URL)
-			}
+			debugF("parse request, URL: %#v\n", request.URL)
 		},
 		Transport:     nil,
 		FlushInterval: FlushInterval,
@@ -48,34 +43,24 @@ func newProxy() *httputil.ReverseProxy {
 			return nil
 		},
 		ErrorHandler: func(writer http.ResponseWriter, request *http.Request, err error) {
-			if *Debug {
-				log.Printf("[DEBUG] host: %s, url: %s, proto: %s, method: %s\n",
-					request.Host, request.URL, request.Proto, request.Method)
-			}
+			debugF("host: %s, url: %#v, proto: %s, method: %s\n",
+				request.Host, request.URL, request.Proto, request.Method)
 			// 熔断判断
 			switch request.Header.Get(SandwichInternalFlag) {
 			case SandwichBucketLimit:
-				if *Debug {
-					log.Printf("[DEBUG] reach breaker limit")
-				}
+				debug("reach breaker limit")
 				writer.WriteHeader(http.StatusTooManyRequests)
 				return
 			case SandwichReqLimit:
-				if *Debug {
-					log.Printf("[DEBUG] reach flow control limit")
-				}
+				debug("reach flow control limit")
 				Cache(http.StatusTooManyRequests, writer, request, Forbidden)
 				return
 			case SandwichDomainNotAllow:
-				if *Debug {
-					log.Printf("[DEBUG] http: no Host in request URL")
-				}
+				debug("http: no Host in request URL")
 				Cache(http.StatusForbidden, writer, request, Forbidden)
 				return
 			case SandwichBackendError:
-				if *Debug {
-					log.Printf("[DEBUG] backend: service is down")
-				}
+				debug("backend: service is down")
 				Cache(http.StatusBadGateway, writer, request, Unavailable)
 			}
 			breaker.Set(request.Host)

@@ -12,9 +12,23 @@ import (
 
 var (
 	PREFIX = fmt.Sprintf("[%s] ", Sandwich)
+	DEBUG  = "[DEBUG] "
 )
 
 func InitLog() {
 	log.SetPrefix(PREFIX)
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
+}
+
+func debugF(fmt string, v ...interface{}) {
+	if Debug {
+		log.Printf(DEBUG+fmt, v...)
+	}
+}
+
+func debug(v ...interface{}) {
+	if Debug {
+		log.Print(DEBUG)
+		log.Println(v...)
+	}
 }

@@ -14,6 +14,7 @@ import (
 
 func InitSyncJobs() {
 	go syncJob()
+	go syncDomainMap()
 }
 
 func syncDomainMap() {
@@ -24,6 +25,18 @@ func syncDomainMap() {
 			log.Println("reload NoEngineDomainMap active")
 			InitNoEngineDomainMap()
 			log.Println("reload NoEngineDomainMap done")
+		}
+	}
+}
+
+// 异步从数据库同步端口数据
+func syncJob() {
+	tick := time.NewTicker(SyncTime)
+	for {
+		select {
+		case <-tick.C:
+			log.Println("sync job active")
+			getDataFromMongo()
 		}
 	}
 }
