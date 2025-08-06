@@ -28,7 +28,7 @@ func debugF(fmt string, v ...interface{}) {
 
 func debug(v ...interface{}) {
 	if Debug {
-		log.Print(DEBUG)
-		log.Println(v...)
+		vv := append([]interface{}{"[DEBUG] "}, v...)
+		log.Println(vv...)
 	}
 }

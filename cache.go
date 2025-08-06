@@ -9,22 +9,33 @@ Copyright Renj
 package main
 
 import (
+	"bytes"
 	"compress/gzip"
 	"log"
 	"net/http"
 	"strings"
-	"sync"
 )
 
 // 静态文件的缓存
 // 缓存headers支持gzip压缩
 
-var SandwichCache []byte
+// gzip压缩后的静态页面缓存
+var (
+	ForbiddenPageGzip   []byte
+	UnavailablePageGzip []byte
+)
 
 const (
 	Forbidden = iota
 	Unavailable
+	Other
 )
+
+var CodeMap = map[int][]byte{
+	Forbidden:   ForbiddenPage,
+	Unavailable: UnavailablePage,
+	Other:       []byte(ERRORSendProxy),
+}
 
 func Cache(code int, w http.ResponseWriter, r *http.Request, resType int) {
 	if StrictMode || !acceptHTML(r) {
@@ -35,13 +46,13 @@ func Cache(code int, w http.ResponseWriter, r *http.Request, resType int) {
 	w.WriteHeader(http.StatusOK)
 	switch resType {
 	case Forbidden:
-		writeResponse(w, r, ForbiddenPage)
+		writeResponse(w, r, Forbidden)
 		return
 	case Unavailable:
-		writeResponse(w, r, UnavailablePage)
+		writeResponse(w, r, Unavailable)
 		return
 	default:
-		writeResponse(w, r, []byte(ERRORSendProxy))
+		writeResponse(w, r, Other)
 		return
 	}
 }
@@ -58,53 +69,77 @@ func strictWrite(code int, w http.ResponseWriter) {
 	w.Write([]byte(ERRORSendProxy))
 }
 
-func writeResponse(w http.ResponseWriter, request *http.Request, data []byte) {
+func writeResponse(w http.ResponseWriter, request *http.Request, t int) {
 	if useGzip(request) {
-		minify(w, data)
+		// 检查是否有预压缩的缓存
+		if gzipData := getGzipCache(t); gzipData != nil {
+			w.Header().Set("Content-Encoding", "gzip")
+			w.Write(gzipData)
+		} else {
+			minify(w, CodeMap[t])
+		}
 	} else {
-		w.Write(data)
+		w.Write(CodeMap[t])
 	}
 }
 
-func checkCache() bool {
-	if len(SandwichCache) > 0 {
-		return true
+// 初始化gzip缓存
+func initGzipCache() {
+	var err error
+	ForbiddenPageGzip, err = compressData(ForbiddenPage)
+	if err != nil {
+		log.Printf("compress ForbiddenPage error: %s\n", err.Error())
 	}
-	return false
+	UnavailablePageGzip, err = compressData(UnavailablePage)
+	if err != nil {
+		log.Printf("compress UnavailablePage error: %s\n", err.Error())
+	}
+	log.Println("gzip cache initialized")
 }
 
-func freshCache(b []byte) {
-	lock := sync.Mutex{}
-	lock.Lock()
-	defer lock.Unlock()
-	if len(SandwichCache) > CacheSize*1024*1024 {
-		clearCache(&lock)
+// 压缩数据到字节数组
+func compressData(data []byte) ([]byte, error) {
+	var buf bytes.Buffer
+	gzw := gzip.NewWriter(&buf)
+	_, err := gzw.Write(data)
+	if err != nil {
+		return nil, err
 	}
-	SandwichCache = b
-	log.Println("fresh static html to cache")
+	err = gzw.Close()
+	if err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
 }
 
-func clearCache(lock *sync.Mutex) {
-	lock.Lock()
-	defer lock.Unlock()
-	SandwichCache = []byte{}
-	log.Println("reach cache-size limit")
+// 获取对应的gzip缓存数据
+func getGzipCache(t int) []byte {
+	// 通过比较字节数组来确定是哪个页面
+	if t == Forbidden {
+		return ForbiddenPageGzip
+	}
+	if t == Unavailable {
+		return UnavailablePageGzip
+	}
+	return nil
 }
 
 // 压缩html文件
 func minify(w http.ResponseWriter, b []byte) {
-	w.Header().Add("Content-Encoding", "gzip")
-	w.Header().Add("Accept-Encoding", "gzip")
+	w.Header().Set("Content-Encoding", "gzip")
 	gzw := gzip.NewWriter(w)
-	_, _ = gzw.Write(b)
 	defer func() {
 		if e := gzw.Close(); e != nil {
 			log.Printf("gzip write error: %s\n", e.Error())
 		}
 	}()
+	_, _ = gzw.Write(b)
 }
 
 func useGzip(request *http.Request) bool {
+	if !Gzip {
+		return false
+	}
 	accept := request.Header.Get("Accept-Encoding")
 	return strings.Contains(accept, "gzip")
 }

@@ -22,6 +22,9 @@ func main() {
 	// load helios config
 	InitHeliosConfig()
 
+	// init gzip cache for static pages
+	initGzipCache()
+
 	// start sync jobs
 	InitSyncJobs()
 

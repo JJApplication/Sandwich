@@ -28,6 +28,7 @@ var (
 	CacheSize    int
 	StrictMode   bool // 启用http严格返回模式 此情况下非2xx状态码后的响应无效
 	Debug        bool
+	Gzip         bool // 受网关影响不做多次gzip压缩
 	// NoEngineDomain NoEngine域名和服务映射
 	NoEngineDomain string // eg: blog.renj.io -> BlogFront
 
@@ -58,6 +59,7 @@ func InitConfigFromEnvs() {
 	CacheSize = LoaderEnv("CacheSize").Int(10)
 	StrictMode = LoaderEnv("StrictMode").Bool(false)
 	Debug = LoaderEnv("Debug").Bool(false)
+	Gzip = LoaderEnv("Gzip").Bool(false)
 	NoEngineDomain = LoaderEnv("NoEngineDomain").String("domain.json")
 	HeliosAddress = LoaderEnv("HeliosAddress").String("/var/run/Helios.sock")
 	FrontendFlag = LoaderEnv("FrontendFlag").String("X-Proxy-Internal-Front")
@@ -65,8 +67,8 @@ func InitConfigFromEnvs() {
 	FrontendPort = LoaderEnv("FrontendPort").Int(7777)
 
 	FrontendHostHeader = LoaderEnv("FrontendHostHeader").String("X-Proxy-Internal-Host")
-	//BackendHeader = LoaderEnv("BackendFlag").String("X-Proxy-Internal-Local")
-	//ProxyApp = LoaderEnv("ProxyApp").String("X-Proxy-Backend")
+	BackendHeader = LoaderEnv("BackendFlag").String("X-Proxy-Internal-Local")
+	ProxyApp = LoaderEnv("ProxyApp").String("X-Proxy-Backend")
 
 	LIMIT = LoaderEnv("FlowLimit").Int(200)
 	RESET = LoaderEnv("FlowReset").Int(10)
