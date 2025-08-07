@@ -10,7 +10,8 @@ package main
 import "time"
 
 const (
-	Sandwich = "Sandwich"
+	Sandwich  = "Sandwich"
+	Copyright = "renj.io"
 )
 
 var (
@@ -36,6 +37,8 @@ var (
 	FrontendFlag  string
 	FrontendHost  string
 	FrontendPort  int
+
+	TraceID string
 )
 
 var (
@@ -69,6 +72,8 @@ func InitConfigFromEnvs() {
 	FrontendHostHeader = LoaderEnv("FrontendHostHeader").String("X-Proxy-Internal-Host")
 	BackendHeader = LoaderEnv("BackendFlag").String("X-Proxy-Internal-Local")
 	ProxyApp = LoaderEnv("ProxyApp").String("X-Proxy-Backend")
+
+	TraceID = LoaderEnv("TraceID").String("X-Gateway-Trace-Id")
 
 	LIMIT = LoaderEnv("FlowLimit").Int(200)
 	RESET = LoaderEnv("FlowReset").Int(10)

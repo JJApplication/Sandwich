@@ -21,10 +21,9 @@ const (
 func newProxy() *httputil.ReverseProxy {
 	proxy := &httputil.ReverseProxy{
 		Director: func(request *http.Request) {
-			debugF("parse request Header: %#v\n",
-				request.Header)
-			debugF("parse request Host: %#v\n",
-				request.Host)
+			debugF("parse request Header: %#v\n", request.Header)
+			debugF("parse request Host: %#v\n", request.Host)
+			debugF("parse request Trace-Id: %s\n", request.Header.Get(TraceID))
 			if !validateDomain(request) {
 				request.Header.Set(SandwichInternalFlag, SandwichDomainNotAllow)
 				request.URL = &url.URL{Scheme: Sandwich}
