@@ -7,21 +7,22 @@ package main
 
 import (
 	"net/http"
+	"sandwich/constant"
 )
 
 // 自定义的响应头部
 
 func addHeader(response *http.Response) {
 	if response.Header.Get("Proxy-Server") == "" {
-		response.Header.Add("Proxy-Server", Sandwich)
+		response.Header.Add("Proxy-Server", constant.Sandwich)
 	}
 	if response.Header.Get("Proxy-Copyright") == "" {
-		response.Header.Add("Proxy-Copyright", Copyright)
+		response.Header.Add("Proxy-Copyright", constant.Copyright)
 	}
 	// 设置请求的Trace-Id
-	traceId := response.Request.Header.Get(TraceID)
+	traceId := response.Request.Header.Get(constant.TraceID)
 	if traceId != "" {
-		response.Header.Set(TraceID, traceId)
+		response.Header.Set(constant.TraceID, traceId)
 	}
 }
 

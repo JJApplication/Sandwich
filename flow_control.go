@@ -6,7 +6,8 @@ Created: 2021/12/14 by Landers
 package main
 
 import (
-	"log"
+	"sandwich/constant"
+	"sandwich/log"
 	"sync"
 	"time"
 )
@@ -15,17 +16,10 @@ import (
 // 在访问的请求数超出限制时 禁止当前客户端请求
 // 无法识别客户端所以是针对全局的请求限制
 
-var (
-	// LIMIT 限制100/10s
-	LIMIT int
-	// RESET 经过RESET * Duration次无请求后，从map中删除定时器
-	RESET int
-)
-
 var limiter *ConnLimiter
 
 func InitLimiter() {
-	limiter = NewConnLimiter(LIMIT)
+	limiter = NewConnLimiter(constant.LIMIT)
 	go limiter.AutoRelease()
 }
 
@@ -46,7 +40,7 @@ func NewConnLimiter(c int) *ConnLimiter {
 // GetConn 获取桶令牌数量
 func (cl *ConnLimiter) GetConn() bool {
 	if len(cl.bucket) >= cl.concurrentConn {
-		log.Println("limiter reach limit")
+		log.Info("limiter reach limit")
 		return false
 	}
 	cl.bucket <- 1
@@ -56,18 +50,18 @@ func (cl *ConnLimiter) GetConn() bool {
 // ReleaseConn 释放所有桶
 func (cl *ConnLimiter) ReleaseConn() {
 	<-cl.bucket
-	log.Println("limiter new connection coming")
+	log.Info("limiter new connection coming")
 }
 
 // AutoRelease 每5秒释放一次桶
 func (cl *ConnLimiter) AutoRelease() {
-	ticker := time.Tick(time.Duration(RESET) * time.Second)
+	ticker := time.Tick(time.Duration(constant.RESET) * time.Second)
 	for range ticker {
 		if len(cl.bucket) >= cl.concurrentConn {
 			cl.mux.Lock()
-			cl.bucket = make(chan int, LIMIT)
+			cl.bucket = make(chan int, constant.LIMIT)
 			cl.mux.Unlock()
-			log.Println("limiter connection auto released")
+			log.Info("limiter connection auto released")
 		}
 	}
 }

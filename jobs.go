@@ -8,7 +8,8 @@
 package main
 
 import (
-	"log"
+	"sandwich/constant"
+	"sandwich/log"
 	"time"
 )
 
@@ -22,20 +23,20 @@ func syncDomainMap() {
 	for {
 		select {
 		case <-tick.C:
-			log.Println("reload NoEngineDomainMap active")
+			log.Info("reload NoEngineDomainMap active")
 			InitNoEngineDomainMap()
-			log.Println("reload NoEngineDomainMap done")
+			log.Info("reload NoEngineDomainMap done")
 		}
 	}
 }
 
 // 异步从数据库同步端口数据
 func syncJob() {
-	tick := time.NewTicker(SyncTime)
+	tick := time.NewTicker(constant.SyncTime)
 	for {
 		select {
 		case <-tick.C:
-			log.Println("sync job active")
+			log.Info("sync job active")
 			getDataFromMongo()
 		}
 	}

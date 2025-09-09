@@ -5,7 +5,7 @@
    Copyright Renj
 */
 
-package main
+package constant
 
 import (
 	"os"

@@ -7,7 +7,7 @@ package main
 
 import (
 	"fmt"
-	"log"
+	"sandwich/log"
 	"sync"
 )
 
@@ -49,14 +49,14 @@ func domainReflect(host string) []string {
 func getDataFromMongo() {
 	data := getAppFromMongo()
 	for _, v := range data {
-		log.Printf("find app [%s] from mongo, domain: [%s], ports: [%+v]\n",
+		log.InfoF("find app [%s] from mongo, domain: [%s], ports: [%+v]\n",
 			v.Meta.Name, v.Meta.Meta.Domain, v.Meta.RunData.Ports)
 	}
 
 	// 托管随机端口服务和固定端口服务
 	for _, d := range data {
 		domainPoolSync.Lock()
-		log.Printf("load [%s] to pool\n", d.Meta.Name)
+		log.InfoF("load [%s] to pool\n", d.Meta.Name)
 		if d.Meta.Meta.Domain != "" && d.Meta.RunData.RandomPort {
 			domainPool[d.Meta.Meta.Domain] = d.Meta.RunData.Ports
 		} else if d.Meta.Meta.Domain != "" && len(d.Meta.RunData.Ports) > 0 && !d.Meta.RunData.RandomPort {
@@ -65,8 +65,8 @@ func getDataFromMongo() {
 		domainPoolSync.Unlock()
 	}
 
-	log.Println("domainPool is:")
+	log.Info("domainPool is:")
 	for k, v := range domainPool {
-		log.Printf("[%s]: %+v\n", k, v)
+		log.InfoF("[%s]: %+v\n", k, v)
 	}
 }

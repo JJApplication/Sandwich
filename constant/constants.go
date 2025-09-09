@@ -5,9 +5,11 @@
    Copyright Renj
 */
 
-package main
+package constant
 
-import "time"
+import (
+	"time"
+)
 
 const (
 	Sandwich  = "Sandwich"
@@ -42,6 +44,18 @@ var (
 )
 
 var (
+	// LIMIT 限制100/10s
+	LIMIT int
+	// RESET 经过RESET * Duration次无请求后，从map中删除定时器
+	RESET int
+)
+
+var (
+	BreakerLimit int // 限制内部错误的次数
+	BreakerReset int // 默认的重置时间当服务down时 等待60s后重试
+)
+
+var (
 	FrontendHostHeader string // 前端服务HOST标识
 	BackendHeader      string // 后端服务标识
 	ProxyApp           string // 要转到的后端服务
@@ -63,7 +77,7 @@ func InitConfigFromEnvs() {
 	StrictMode = LoaderEnv("StrictMode").Bool(false)
 	Debug = LoaderEnv("Debug").Bool(false)
 	Gzip = LoaderEnv("Gzip").Bool(false)
-	NoEngineDomain = LoaderEnv("NoEngineDomain").String("domain.json")
+	NoEngineDomain = LoaderEnv("NoEngineDomain").String("dojson")
 	HeliosAddress = LoaderEnv("HeliosAddress").String("/var/run/Helios.sock")
 	FrontendFlag = LoaderEnv("FrontendFlag").String("X-Proxy-Internal-Front")
 	FrontendHost = LoaderEnv("FrontendHost").String("127.0.0.1")

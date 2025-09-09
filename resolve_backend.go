@@ -8,9 +8,10 @@
 package main
 
 import (
-	"log"
 	"net/http"
 	"net/url"
+	"sandwich/constant"
+	"sandwich/log"
 )
 
 // 后端服务的API转发
@@ -22,18 +23,18 @@ func resolveBackend(req *http.Request, fromConf bool) *url.URL {
 		app = NoEngineDomainMap[host].Backend
 	} else {
 		// 获取要转发到的后端服务名
-		app = req.Header.Get(ProxyApp)
+		app = req.Header.Get(constant.ProxyApp)
 	}
 
 	if app == "" {
-		log.Println("proxy -> None error: app is nil")
+		log.Info("proxy -> None error: app is nil")
 		req.Header.Set(SandwichInternalFlag, SandwichBackendError)
 		return nil
 	}
 	// 获取后端服务对应的域名
 	proxyApp := getDomainByApp(app)
 	if proxyApp == "" {
-		log.Printf("proxy -> %s error: app domain is nil", app)
+		log.ErrorF("proxy -> %s error: app domain is nil", app)
 		req.Header.Set(SandwichInternalFlag, SandwichBackendError)
 		return nil
 	}
@@ -41,16 +42,16 @@ func resolveBackend(req *http.Request, fromConf bool) *url.URL {
 	dst := domainReflect(proxyApp)
 	if dst == nil || len(dst) == 0 {
 		addInfluxData(req, StatNotFound)
-		log.Printf("domain reflect failed: [%s]\n", proxyApp)
+		log.ErrorF("domain reflect failed: [%s]\n", proxyApp)
 		req.Header.Set(SandwichInternalFlag, SandwichBackendError)
 		return nil
 	}
 
 	addInfluxData(req, StatPass)
-	log.Printf("request recv| %s |uri: %s|host: %s\n", req.Method, req.RequestURI, proxyApp)
+	log.InfoF("request recv| %s |uri: %s|host: %s\n", req.Method, req.RequestURI, proxyApp)
 	req.URL.Scheme = "http"
 	req.URL.Host = pickOne(dst)
-	log.Printf("backend -> [%s] : [%s]\n", app, req.URL.Host)
+	log.InfoF("backend -> [%s] : [%s]\n", app, req.URL.Host)
 
 	if req.URL == nil {
 		req.Header.Set(SandwichInternalFlag, SandwichBackendError)

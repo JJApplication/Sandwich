@@ -10,6 +10,8 @@ package main
 import (
 	"net/http"
 	"net/url"
+	"sandwich/constant"
+	"sandwich/log"
 )
 
 // 解析req判断转发逻辑
@@ -25,9 +27,9 @@ const (
 // 配置优先级 > Header的优先级
 // 配置为{frontend: xx, backend: xx} 纯前后端服务时对应的另一套配置为空
 func Resolve(req *http.Request) *url.URL {
-	debugF("resolve url: %s\n", req.RequestURI)
-	debugF("resolve host: %s\n", req.Host)
-	debugF("resolve headers: %#v\n", req.Header)
+	log.DebugF("resolve url: %s\n", req.RequestURI)
+	log.DebugF("resolve host: %s\n", req.Host)
+	log.DebugF("resolve headers: %#v\n", req.Header)
 	switch resolveType(req) {
 	case Frontend:
 		return resolveFrontend(req)
@@ -49,7 +51,7 @@ func resolveType(req *http.Request) int {
 	host := req.Host
 	app := NoEngineDomainMap[host]
 	if app.Frontend != "" && app.Backend != "" {
-		backHeader := req.Header.Get(BackendHeader)
+		backHeader := req.Header.Get(constant.BackendHeader)
 		if backHeader == "yes" {
 			return Backend
 		}

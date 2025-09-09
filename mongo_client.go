@@ -9,7 +9,8 @@ Copyright Renj
 package main
 
 import (
-	"log"
+	"sandwich/constant"
+	"sandwich/log"
 	"time"
 
 	"github.com/JJApplication/octopus_meta"
@@ -34,10 +35,10 @@ func (a *DaoAPP) CollectionName() string {
 }
 
 func InitMongo() {
-	log.Println("init mongodb")
-	err := mgm.SetDefaultConfig(&mgm.Config{CtxTimeout: 1 * time.Second}, DBName, options.Client().ApplyURI(MongoUrl))
+	log.Info("init mongodb")
+	err := mgm.SetDefaultConfig(&mgm.Config{CtxTimeout: 1 * time.Second}, constant.DBName, options.Client().ApplyURI(constant.MongoUrl))
 	if err != nil {
-		log.Printf("failed to connect to mongo: %s\n", err.Error())
+		log.ErrorF("failed to connect to mongo: %s\n", err.Error())
 		return
 	}
 }
@@ -47,7 +48,7 @@ func getAppFromMongo() []DaoAPP {
 	var data []DaoAPP
 	err := mgm.Coll(&DaoAPP{}).SimpleFind(&data, bson.M{})
 	if err != nil {
-		log.Printf("get data from mongo failed: %s\n", err.Error())
+		log.ErrorF("get data from mongo failed: %s\n", err.Error())
 		return nil
 	}
 	return data

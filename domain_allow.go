@@ -9,8 +9,9 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
+	"sandwich/constant"
+	"sandwich/log"
 	"sync"
 )
 
@@ -34,7 +35,7 @@ func InitDomainAllowList(domainData *noengineDomainMap) {
 
 func loadDomainAllowList(domainData *noengineDomainMap) map[string]struct{} {
 	if domainData == nil {
-		log.Println("DomainList config read empty")
+		log.Info("DomainList config read empty")
 		return nil
 	}
 
@@ -50,8 +51,8 @@ func loadDomainAllowList(domainData *noengineDomainMap) map[string]struct{} {
 // 内部请求无需校验
 func validateDomain(req *http.Request) bool {
 	domain := req.Host
-	if (domain == fmt.Sprintf(":%s", Port) || domain == fmt.Sprintf("127.0.0.1:%s", Port)) &&
-		req.Header.Get(BackendHeader) != "" {
+	if (domain == fmt.Sprintf(":%s", constant.Port) || domain == fmt.Sprintf("127.0.0.1:%s", constant.Port)) &&
+		req.Header.Get(constant.BackendHeader) != "" {
 		return true
 	}
 	_, ok := DomainAllowList[domain]

@@ -9,7 +9,8 @@ package main
 
 import (
 	"encoding/json"
-	"log"
+	"sandwich/constant"
+	"sandwich/log"
 	"sync"
 )
 
@@ -48,19 +49,19 @@ func InitNoEngineDomainMap() {
 }
 
 func loadNoEngineDomainMap() *noengineDomainMap {
-	if NoEngineDomain == "" {
-		log.Println("NoEngineDomain config is empty")
+	if constant.NoEngineDomain == "" {
+		log.Info("NoEngineDomain config is empty")
 		return nil
 	}
-	data, err := getContent(NoEngineDomain)
+	data, err := getContent(constant.NoEngineDomain)
 	if err != nil {
-		log.Printf("NoEngineDomain config read error:%s\n", err.Error())
+		log.ErrorF("NoEngineDomain config read error:%s\n", err.Error())
 		return nil
 	}
 
 	var tmp *noengineDomainMap
 	if err = json.Unmarshal(data, &tmp); err != nil {
-		log.Printf("NoEngineDomain config parse error:%s\n", err.Error())
+		log.ErrorF("NoEngineDomain config parse error:%s\n", err.Error())
 		return nil
 	}
 

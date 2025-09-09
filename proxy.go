@@ -6,10 +6,11 @@ Created: 2021/12/12 by Landers
 package main
 
 import (
-	"log"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"sandwich/constant"
+	"sandwich/log"
 	"time"
 )
 
@@ -21,16 +22,16 @@ const (
 func newProxy() *httputil.ReverseProxy {
 	proxy := &httputil.ReverseProxy{
 		Director: func(request *http.Request) {
-			debugF("parse request Header: %#v\n", request.Header)
-			debugF("parse request Host: %#v\n", request.Host)
-			debugF("parse request Trace-Id: %s\n", request.Header.Get(TraceID))
+			log.DebugF("parse request Header: %#v\n", request.Header)
+			log.DebugF("parse request Host: %#v\n", request.Host)
+			log.DebugF("parse request Trace-Id: %s\n", request.Header.Get(constant.TraceID))
 			if !validateDomain(request) {
 				request.Header.Set(SandwichInternalFlag, SandwichDomainNotAllow)
-				request.URL = &url.URL{Scheme: Sandwich}
+				request.URL = &url.URL{Scheme: constant.Sandwich}
 				return
 			}
 			request.URL = ParseRequest(request)
-			debugF("parse request, URL: %#v\n", request.URL)
+			log.DebugF("parse request, URL: %#v\n", request.URL)
 		},
 		Transport:     nil,
 		FlushInterval: FlushInterval,
@@ -42,28 +43,28 @@ func newProxy() *httputil.ReverseProxy {
 			return nil
 		},
 		ErrorHandler: func(writer http.ResponseWriter, request *http.Request, err error) {
-			debugF("host: %s, url: %#v, proto: %s, method: %s\n",
+			log.DebugF("host: %s, url: %#v, proto: %s, method: %s\n",
 				request.Host, request.URL, request.Proto, request.Method)
 			// 熔断判断
 			switch request.Header.Get(SandwichInternalFlag) {
 			case SandwichBucketLimit:
-				debug("reach breaker limit")
+				log.Debug("reach breaker limit")
 				writer.WriteHeader(http.StatusTooManyRequests)
 				return
 			case SandwichReqLimit:
-				debug("reach flow control limit")
+				log.Debug("reach flow control limit")
 				Cache(http.StatusTooManyRequests, writer, request, Forbidden)
 				return
 			case SandwichDomainNotAllow:
-				debug("http: no Host in request URL")
+				log.Debug("http: no Host in request URL")
 				Cache(http.StatusForbidden, writer, request, Forbidden)
 				return
 			case SandwichBackendError:
-				debug("backend: service is down")
+				log.Debug("backend: service is down")
 				Cache(http.StatusBadGateway, writer, request, Unavailable)
 			}
 			breaker.Set(request.Host)
-			log.Printf("proxy connect error: %s\n", err.Error())
+			log.ErrorF("proxy connect error: %s\n", err.Error())
 			Cache(http.StatusBadGateway, writer, request, Unavailable)
 		},
 	}
@@ -83,13 +84,13 @@ func ParseRequest(req *http.Request) *url.URL {
 	if !breaker.Get(host) {
 		addInfluxData(req, StatBreak)
 		req.Header.Set(SandwichInternalFlag, SandwichBucketLimit)
-		return &url.URL{Scheme: Sandwich}
+		return &url.URL{Scheme: constant.Sandwich}
 	}
 	if !limiter.GetConn() {
 		addInfluxData(req, StatAbort)
-		log.Printf("client %s has been limit to request\n", req.RemoteAddr)
+		log.InfoF("client %s has been limit to request\n", req.RemoteAddr)
 		req.Header.Set(SandwichInternalFlag, SandwichReqLimit)
-		return &url.URL{Scheme: Sandwich}
+		return &url.URL{Scheme: constant.Sandwich}
 	}
 	defer limiter.ReleaseConn()
 

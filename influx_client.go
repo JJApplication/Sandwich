@@ -10,8 +10,9 @@ package main
 
 import (
 	"context"
-	"log"
 	"net/http"
+	"sandwich/constant"
+	"sandwich/log"
 	"strconv"
 	"time"
 
@@ -52,23 +53,23 @@ func InitInflux() {
 	if !preCheck() {
 		return
 	}
-	log.Println("init influxdb")
-	if InfluxToken != "" {
-		influxC = influxdb2.NewClient(InfluxUrl, InfluxToken)
+	log.Info("init influxdb")
+	if constant.InfluxToken != "" {
+		influxC = influxdb2.NewClient(constant.InfluxUrl, constant.InfluxToken)
 	} else {
-		influxC = influxdb2.NewClient(InfluxUrl, InfluxToken)
-		if InfluxPwd == "" {
-			InfluxPwd = DefaultPwd
+		influxC = influxdb2.NewClient(constant.InfluxUrl, constant.InfluxToken)
+		if constant.InfluxPwd == "" {
+			constant.InfluxPwd = DefaultPwd
 		}
-		res, err := influxC.Setup(context.Background(), InfluxOrg, InfluxPwd, InfluxOrg, InfluxBucket, 0)
+		res, err := influxC.Setup(context.Background(), constant.InfluxOrg, constant.InfluxPwd, constant.InfluxOrg, constant.InfluxBucket, 0)
 		if err != nil {
-			log.Printf("setup Error: %s\n", err.Error())
+			log.ErrorF("setup Error: %s\n", err.Error())
 		} else {
-			log.Printf("setup finished,authtoken: %s\n", *res.Auth.Token)
+			log.InfoF("setup finished, authToken: %s\n", *res.Auth.Token)
 		}
 	}
 
-	writeApi = influxC.WriteAPI(InfluxOrg, InfluxBucket)
+	writeApi = influxC.WriteAPI(constant.InfluxOrg, constant.InfluxBucket)
 	go autoFlush()
 }
 
@@ -107,17 +108,17 @@ func autoFlush() {
 }
 
 func preCheck() bool {
-	return EnableInflux
+	return constant.EnableInflux
 }
 
 // 查询数据 无需聚合运算
 // `from(bucket: "sandwich")|>range(start: -1h)|>filter(fn: (r)=>r._measurement == "sandwich")`
 func getInfluxData(query string) []map[string]interface{} {
 	var res []map[string]interface{}
-	queryApi := influxC.QueryAPI(InfluxOrg)
+	queryApi := influxC.QueryAPI(constant.InfluxOrg)
 	result, err := queryApi.Query(context.Background(), query)
 	if err != nil {
-		log.Printf("query influx error: %s\n", err.Error())
+		log.ErrorF("query influx error: %s\n", err.Error())
 		return nil
 	}
 	for result.Next() {

@@ -7,13 +7,14 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
+	"sandwich/constant"
+	"sandwich/log"
 )
 
 func main() {
-	InitConfigFromEnvs()
-	InitLog()
+	constant.InitConfigFromEnvs()
+	log.InitLog()
 	InitMongo()
 	InitInflux()
 	InitPool()
@@ -31,9 +32,9 @@ func main() {
 	// init worker
 	InitBreaker()
 	InitLimiter()
-	log.Printf("proxy server start on: %s:%s", Host, Port)
-	err := http.ListenAndServe(fmt.Sprintf("%s:%s", Host, Port), Proxy())
+	log.InfoF("proxy server start on: %s:%s", constant.Host, constant.Port)
+	err := http.ListenAndServe(fmt.Sprintf("%s:%s", constant.Host, constant.Port), Proxy())
 	if err != nil {
-		log.Printf("proxy server err: %s\n", err.Error())
+		log.ErrorF("proxy server err: %s\n", err.Error())
 	}
 }

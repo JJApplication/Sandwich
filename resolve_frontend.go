@@ -9,9 +9,10 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"net/url"
+	"sandwich/constant"
+	"sandwich/log"
 	"strings"
 )
 
@@ -21,28 +22,28 @@ func resolveFrontend(req *http.Request) *url.URL {
 	host := req.Host
 	if !resolveDomain(host) {
 		addInfluxData(req, StatNotFound)
-		log.Printf("domain resolved failed: [%s]\n", host)
+		log.ErrorF("domain resolved failed: [%s]\n", host)
 		return nil
 	}
 	// 根据域名获取前端app
 	app := NoEngineDomainMap[host]
 	if app.Frontend != "" {
-		log.Printf("doamin resolved -> [%s] : [%s]\n", host, app)
-		if FrontendPort <= 0 {
-			log.Printf("app port not found: [%s]\n", app.Frontend)
+		log.ErrorF("doamin resolved -> [%s] : [%s]\n", host, app)
+		if constant.FrontendPort <= 0 {
+			log.ErrorF("app port not found: [%s]\n", app.Frontend)
 			return nil
 		}
 		addInfluxData(req, StatPass)
 		req.URL.Scheme = "http"
-		req.URL.Host = fmt.Sprintf("%s:%d", FrontendHost, FrontendPort)
+		req.URL.Host = fmt.Sprintf("%s:%d", constant.FrontendHost, constant.FrontendPort)
 		req.Header.Set("Host", host)
-		req.Header.Set(FrontendFlag, app.Frontend)
+		req.Header.Set(constant.FrontendFlag, app.Frontend)
 		// 转发请求必须携带实际HOST信息
-		req.Header.Set(FrontendHostHeader, host)
-		log.Printf("frontend -> [%s] : [%d]\n", app, FrontendPort)
+		req.Header.Set(constant.FrontendHostHeader, host)
+		log.InfoF("frontend -> [%s] : [%d]\n", app, constant.FrontendPort)
 		return req.URL
 	}
-	log.Printf("domain resolved failed: [%s]\n", host)
+	log.ErrorF("domain resolved failed: [%s]\n", host)
 	return nil
 }
 

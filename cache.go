@@ -11,8 +11,9 @@ package main
 import (
 	"bytes"
 	"compress/gzip"
-	"log"
 	"net/http"
+	"sandwich/constant"
+	"sandwich/log"
 	"strings"
 )
 
@@ -38,7 +39,7 @@ var CodeMap = map[int][]byte{
 }
 
 func Cache(code int, w http.ResponseWriter, r *http.Request, resType int) {
-	if StrictMode || !acceptHTML(r) {
+	if constant.StrictMode || !acceptHTML(r) {
 		strictWrite(code, w)
 		return
 	}
@@ -88,13 +89,13 @@ func initGzipCache() {
 	var err error
 	ForbiddenPageGzip, err = compressData(ForbiddenPage)
 	if err != nil {
-		log.Printf("compress ForbiddenPage error: %s\n", err.Error())
+		log.ErrorF("compress ForbiddenPage error: %s\n", err.Error())
 	}
 	UnavailablePageGzip, err = compressData(UnavailablePage)
 	if err != nil {
-		log.Printf("compress UnavailablePage error: %s\n", err.Error())
+		log.ErrorF("compress UnavailablePage error: %s\n", err.Error())
 	}
-	log.Println("gzip cache initialized")
+	log.Info("gzip cache initialized")
 }
 
 // 压缩数据到字节数组
@@ -130,14 +131,14 @@ func minify(w http.ResponseWriter, b []byte) {
 	gzw := gzip.NewWriter(w)
 	defer func() {
 		if e := gzw.Close(); e != nil {
-			log.Printf("gzip write error: %s\n", e.Error())
+			log.ErrorF("gzip write error: %s\n", e.Error())
 		}
 	}()
 	_, _ = gzw.Write(b)
 }
 
 func useGzip(request *http.Request) bool {
-	if !Gzip {
+	if !constant.Gzip {
 		return false
 	}
 	accept := request.Header.Get("Accept-Encoding")
