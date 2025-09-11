@@ -7,6 +7,7 @@ package log
 
 import (
 	"fmt"
+	"github.com/fatih/color"
 	golog "log"
 	"os"
 	"sandwich/config"
@@ -15,20 +16,38 @@ import (
 
 var (
 	PREFIX = fmt.Sprintf("[%s] ", constant.Sandwich)
-	INFO   = "[INFO] "
-	ERROR  = "[ERROR] "
-	WARN   = "[WARN] "
-	DEBUG  = "[DEBUG] "
+	INFO   = fmt.Sprintf("[%-5s]", "INFO")
+	ERROR  = fmt.Sprintf("[%-5s]", "ERROR")
+	WARN   = fmt.Sprintf("[%-5s]", "WARN")
+	DEBUG  = fmt.Sprintf("[%-5s]", "DEBUG")
+
+	// 颜色日志级别
+	colorInfo  = color.New(color.BgGreen, color.FgWhite).SprintFunc()  // 绿色背景白色文字
+	colorError = color.New(color.BgRed, color.FgWhite).SprintFunc()    // 红色背景白色文字
+	colorWarn  = color.New(color.BgYellow, color.FgBlack).SprintFunc() // 黄色背景黑色文字
+	colorDebug = color.New(color.BgCyan, color.FgWhite).SprintFunc()   // 青色背景白色文字
 )
 
 func InitLog() {
 	logger = &Log{
-		gl: golog.New(os.Stdout, PREFIX, golog.LstdFlags|golog.Lshortfile),
+		gl:           golog.New(os.Stdout, PREFIX, golog.LstdFlags),
+		ColorEnabled: true, // 默认启用颜色
+	}
+}
+
+// InitLogWithColor 初始化日志并指定是否启用颜色
+func InitLogWithColor(enableColor bool) {
+	logger = &Log{
+		gl:           golog.New(os.Stdout, PREFIX, golog.LstdFlags),
+		ColorEnabled: enableColor,
 	}
 }
 
 type Log struct {
-	gl *golog.Logger
+	gl           *golog.Logger
+	ColorEnabled bool // 是否启用颜色输出
+	LogLevel     string
+	LogFile      string
 }
 
 // 直接使用的单例
@@ -40,13 +59,44 @@ func GetLogger() *Log {
 	return logger
 }
 
+// 获取带颜色的日志级别标签
+func (l *Log) getColoredLevel(level string) string {
+	if !l.ColorEnabled {
+		return level
+	}
+
+	switch level {
+	case INFO:
+		return colorInfo(fmt.Sprintf("%-5s", "INFO"))
+	case ERROR:
+		return colorError(fmt.Sprintf("%-5s", "ERROR"))
+	case WARN:
+		return colorWarn(fmt.Sprintf("%-5s", "WARN"))
+	case DEBUG:
+		return colorDebug(fmt.Sprintf("%-5s", "DEBUG"))
+	default:
+		return level
+	}
+}
+
+// SetColorEnabled 设置是否启用颜色输出
+func (l *Log) SetColorEnabled(enabled bool) {
+	l.ColorEnabled = enabled
+}
+
+func (l *Log) SetLevel(level string) {
+	l.LogLevel = level
+}
+
 func (l *Log) do(t string, v ...interface{}) {
-	vv := append([]interface{}{t}, v...)
+	coloredLevel := l.getColoredLevel(t)
+	vv := append([]interface{}{coloredLevel}, v...)
 	l.gl.Println(vv...)
 }
 
 func (l *Log) doF(t string, fmt string, v ...interface{}) {
-	f := t + fmt
+	coloredLevel := l.getColoredLevel(t)
+	f := coloredLevel + " " + fmt
 	l.gl.Printf(f, v...)
 }
 
@@ -124,4 +174,31 @@ func Debug(v ...interface{}) {
 	if config.Get().Debug {
 		logger.Debug(v...)
 	}
+}
+
+func Reload(config config.LogConfig) {
+	SetColorEnabled(config.Color)
+	SetLogLevel(config.LogLevel)
+}
+
+// SetLogLevel 设置日志级别
+func SetLogLevel(level string) {
+	if logger != nil {
+		logger.SetLevel(level)
+	}
+}
+
+// SetColorEnabled 设置全局颜色输出
+func SetColorEnabled(enabled bool) {
+	if logger != nil {
+		logger.SetColorEnabled(enabled)
+	}
+}
+
+// IsColorEnabled 获取当前颜色设置状态
+func IsColorEnabled() bool {
+	if logger != nil {
+		return logger.ColorEnabled
+	}
+	return false
 }

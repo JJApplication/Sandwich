@@ -1,0 +1,116 @@
+{
+  "flow_control": {
+    "enabled": true,
+    "global_limit": {
+      "requests": 1000,
+      "window": "60s",
+      "unit": "s"
+    },
+    "rules": [
+      {
+        "name": "api-strict-limit",
+        "enabled": true,
+        "priority": 1,
+        "match_type": "host",
+        "match_value": "api.example.com",
+        "limits": [
+          {
+            "requests": 10,
+            "window": "100s",
+            "unit": "s"
+          },
+          {
+            "requests": 100,
+            "window": "10min",
+            "unit": "min"
+          }
+        ],
+        "action": "block",
+        "description": "API服务严格限流，100秒内最多10次请求，10分钟内最多100次请求"
+      },
+      {
+        "name": "bad-bot-block",
+        "enabled": true,
+        "priority": 2,
+        "match_type": "header",
+        "header_key": "User-Agent",
+        "match_value": "BadBot",
+        "limits": [
+          {
+            "requests": 1,
+            "window": "60s",
+            "unit": "s"
+          }
+        ],
+        "action": "block",
+        "description": "封禁恶意爬虫，每60秒最多1次请求"
+      },
+      {
+        "name": "admin-area-limit",
+        "enabled": true,
+        "priority": 3,
+        "match_type": "host",
+        "match_value": "admin.example.com",
+        "limits": [
+          {
+            "requests": 5,
+            "window": "30s",
+            "unit": "s"
+          },
+          {
+            "requests": 50,
+            "window": "5min",
+            "unit": "min"
+          }
+        ],
+        "action": "block",
+        "description": "管理后台限流，30秒内最多5次请求，5分钟内最多50次请求"
+      },
+      {
+        "name": "mobile-app-limit",
+        "enabled": true,
+        "priority": 4,
+        "match_type": "header",
+        "header_key": "User-Agent",
+        "match_value": "MobileApp",
+        "limits": [
+          {
+            "requests": 50,
+            "window": "60s",
+            "unit": "s"
+          },
+          {
+            "requests": 1000,
+            "window": "10min",
+            "unit": "min"
+          }
+        ],
+        "action": "block",
+        "description": "移动应用限流，60秒内最多50次请求，10分钟内最多1000次请求"
+      },
+      {
+        "name": "suspicious-ip-block",
+        "enabled": true,
+        "priority": 5,
+        "match_type": "ip",
+        "match_value": "192.168.1.100",
+        "limits": [
+          {
+            "requests": 2,
+            "window": "120s",
+            "unit": "s"
+          }
+        ],
+        "action": "block",
+        "description": "可疑IP限流，120秒内最多2次请求"
+      }
+    ],
+    "recording": {
+      "enabled": true,
+      "record_blocked": true,
+      "record_allowed": false,
+      "storage_type": "influx",
+      "retention_period": "30d"
+    }
+  }
+}

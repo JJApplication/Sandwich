@@ -21,8 +21,11 @@ type Config struct {
 	Database     DatabaseConfig     `yaml:"database" json:"database"`           // 数据库配置
 	Monitor      MonitorConfig      `yaml:"monitor" json:"monitor"`             // 监控配置
 	Security     SecurityConfig     `yaml:"security" json:"security"`           // 安全配置
+	FlowControl  FlowControlConfig  `yaml:"flow_control" json:"flow_control"`   // 流控配置
+	Break        BreakConfig        `yaml:"break" json:"break"`                 // 熔断配置
 	FrontProxy   FrontProxyConfig   `yaml:"front_proxy" json:"front_proxy"`     // 前端代理配置
 	ProxyHeader  ProxyHeader        `yaml:"proxy_header" json:"proxy_header"`   // 内置的代理头配置
+	Log          LogConfig          `yaml:"log" json:"log"`                     // 日志配置
 	CustomHeader map[string]string  `yaml:"custom_header" json:"custom_header"` // 自定义Header
 	DomainMap    string             `yaml:"domain_map" json:"domain_map"`       // 域名映射文件
 	JobSyncTime  int                `yaml:"job_sync_time" json:"job_sync_time"` // 同步时间
@@ -31,14 +34,15 @@ type Config struct {
 
 // ServerConfig 服务器配置结构体
 type ServerConfig struct {
-	Name         string         `yaml:"name" json:"name"`                   // 服务器名称
-	Host         string         `yaml:"host" json:"host"`                   // 监听主机地址
-	Port         int            `yaml:"port" json:"port"`                   // 监听端口
-	UseHttp2     bool           `yaml:"use_http2" json:"use_http2"`         // 使用HTTP2
-	Protocol     string         `yaml:"protocol" json:"protocol"`           // 协议类型: http, https, http3
-	Enabled      bool           `yaml:"enabled" json:"enabled"`             // 是否启用
-	TLS          *TLSConfig     `yaml:"tls,omitempty" json:"tls,omitempty"` // TLS配置
-	DomainConfig []DomainConfig `yaml:"domains" json:"domains"`             // 域名绑定配置
+	Name           string         `yaml:"name" json:"name"`                         // 服务器名称
+	Host           string         `yaml:"host" json:"host"`                         // 监听主机地址
+	Port           int            `yaml:"port" json:"port"`                         // 监听端口
+	UseHttp2       bool           `yaml:"use_http2" json:"use_http2"`               // 使用HTTP2
+	Protocol       string         `yaml:"protocol" json:"protocol"`                 // 协议类型: http, https, http3
+	Enabled        bool           `yaml:"enabled" json:"enabled"`                   // 是否启用
+	MaxRequestBody int64          `yaml:"max_request_body" json:"max_request_body"` // 最大请求体大小（字节）
+	TLS            *TLSConfig     `yaml:"tls,omitempty" json:"tls,omitempty"`       // TLS配置
+	DomainConfig   []DomainConfig `yaml:"domains" json:"domains"`                   // 域名绑定配置
 }
 
 // TLSConfig TLS证书配置结构体
@@ -50,9 +54,54 @@ type TLSConfig struct {
 
 // DomainConfig 域名配置结构体
 type DomainConfig struct {
-	Domains []string `yaml:"domains" json:"domains"`   // 域名
-	UseTLS  bool     `yaml:"use_tls" json:"use_tls"`   // 监听在https
-	AutoTLS bool     `yaml:"auto_tls" json:"auto_tls"` // 自动重定向
+	Domains      []string `yaml:"domains" json:"domains"`             // 域名
+	UseTLS       bool     `yaml:"use_tls" json:"use_tls"`             // 监听在https
+	AutoTLS      bool     `yaml:"auto_tls" json:"auto_tls"`           // 自动重定向
+	UseWebsocket bool     `yaml:"use_websocket" json:"use_websocket"` // 开启websocket
+}
+
+// BreakConfig 熔断配置
+type BreakConfig struct {
+	Bucket   int `yaml:"bucket" json:"bucket"`       // 桶数量
+	MaxError int `yaml:"max_error" json:"max_error"` // 最大允许错误
+	Reset    int `yaml:"reset" json:"reset"`         // 重置时间
+}
+
+// FlowControlRule 流控规则配置结构体
+type FlowControlRule struct {
+	Name        string      `yaml:"name" json:"name"`               // 规则名称
+	Enabled     bool        `yaml:"enabled" json:"enabled"`         // 是否启用
+	Priority    int         `yaml:"priority" json:"priority"`       // 优先级，数字越小优先级越高
+	MatchType   string      `yaml:"match_type" json:"match_type"`   // 匹配类型: host, header, ip
+	MatchValue  string      `yaml:"match_value" json:"match_value"` // 匹配值
+	HeaderKey   string      `yaml:"header_key" json:"header_key"`   // 当match_type为header时的header键名
+	Limits      []RateLimit `yaml:"limits" json:"limits"`           // 速率限制配置列表
+	Action      string      `yaml:"action" json:"action"`           // 限流动作: block, delay
+	Description string      `yaml:"description" json:"description"` // 规则描述
+}
+
+// RateLimit 速率限制配置结构体
+type RateLimit struct {
+	Requests int    `yaml:"requests" json:"requests"` // 允许的请求数
+	Window   string `yaml:"window" json:"window"`     // 时间窗口，如 "100s"、"10min"
+	Unit     string `yaml:"unit" json:"unit"`         // 时间单位: s, min
+}
+
+// FlowControlConfig 流控配置结构体
+type FlowControlConfig struct {
+	Enabled     bool              `yaml:"enabled" json:"enabled"`           // 是否启用流控
+	GlobalLimit RateLimit         `yaml:"global_limit" json:"global_limit"` // 全局限流配置
+	Rules       []FlowControlRule `yaml:"rules" json:"rules"`               // 流控规则列表
+	Recording   FlowRecordConfig  `yaml:"recording" json:"recording"`       // 流控记录配置
+}
+
+// FlowRecordConfig 流控记录配置结构体
+type FlowRecordConfig struct {
+	Enabled         bool   `yaml:"enabled" json:"enabled"`                   // 是否启用限流记录
+	RecordBlocked   bool   `yaml:"record_blocked" json:"record_blocked"`     // 是否记录被限流的请求
+	RecordAllowed   bool   `yaml:"record_allowed" json:"record_allowed"`     // 是否记录通过的请求
+	StorageType     string `yaml:"storage_type" json:"storage_type"`         // 存储类型: influx, mongo, file
+	RetentionPeriod string `yaml:"retention_period" json:"retention_period"` // 数据保留期
 }
 
 // MiddlewareConfig 中间件配置结构体
@@ -206,23 +255,31 @@ type ProxyHeader struct {
 	ProxyApp           string `yaml:"proxy_app" json:"proxy_app"`                       // 要转到的后端服务标识
 }
 
+type LogConfig struct {
+	LogLevel string `yaml:"log_level" json:"log_level"`
+	LogFile  string `yaml:"log_file" json:"log_file"`
+	Color    bool   `yaml:"color" json:"color"`
+}
+
 // GetDefaultConfig 获取默认配置
 func GetDefaultConfig() *Config {
 	return &Config{
 		Servers: []ServerConfig{
 			{
-				Name:     "http-server",
-				Host:     "0.0.0.0",
-				Port:     80,
-				Protocol: "http",
-				Enabled:  true,
+				Name:           "http-server",
+				Host:           "0.0.0.0",
+				Port:           80,
+				Protocol:       "http",
+				Enabled:        true,
+				MaxRequestBody: 32 * 1024 * 1024, // 32MB
 			},
 			{
-				Name:     "https-server",
-				Host:     "0.0.0.0",
-				Port:     443,
-				Protocol: "https",
-				Enabled:  false,
+				Name:           "https-server",
+				Host:           "0.0.0.0",
+				Port:           443,
+				Protocol:       "https",
+				Enabled:        false,
+				MaxRequestBody: 32 * 1024 * 1024, // 32MB
 				TLS: &TLSConfig{
 					CertFile: "/path/to/cert.pem",
 					KeyFile:  "/path/to/key.pem",
@@ -303,6 +360,49 @@ func GetDefaultConfig() *Config {
 			AllowIPs:   []string{},
 			DenyIPs:    []string{},
 			RateLimit:  1000,
+		},
+		FlowControl: FlowControlConfig{
+			Enabled: true,
+			GlobalLimit: RateLimit{
+				Requests: 1000,
+				Window:   "60s",
+				Unit:     "s",
+			},
+			Rules: []FlowControlRule{
+				{
+					Name:       "api-limit",
+					Enabled:    true,
+					Priority:   1,
+					MatchType:  "host",
+					MatchValue: "api.example.com",
+					Limits: []RateLimit{
+						{Requests: 10, Window: "100s", Unit: "s"},
+						{Requests: 100, Window: "10min", Unit: "min"},
+					},
+					Action:      "block",
+					Description: "API服务限流",
+				},
+				{
+					Name:       "user-agent-limit",
+					Enabled:    true,
+					Priority:   2,
+					MatchType:  "header",
+					HeaderKey:  "User-Agent",
+					MatchValue: "BadBot",
+					Limits: []RateLimit{
+						{Requests: 1, Window: "60s", Unit: "s"},
+					},
+					Action:      "block",
+					Description: "封禁恶意爬虫",
+				},
+			},
+			Recording: FlowRecordConfig{
+				Enabled:         true,
+				RecordBlocked:   true,
+				RecordAllowed:   false,
+				StorageType:     "file",
+				RetentionPeriod: "30d",
+			},
 		},
 		ProxyHeader: ProxyHeader{
 			TraceId:            "X-Gateway-Trace-Id",

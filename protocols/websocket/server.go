@@ -122,7 +122,7 @@ func (s *Server) Stop() error {
 }
 
 // HandleUpgrade 处理 WebSocket 升级请求
-func (s *Server) HandleUpgrade(w http.ResponseWriter, r *http.Request, backends []string) error {
+func (s *Server) HandleUpgrade(w http.ResponseWriter, r *http.Request) error {
 	if !s.IsStarted() {
 		return fmt.Errorf("WebSocket 服务器未启动")
 	}
@@ -132,18 +132,14 @@ func (s *Server) HandleUpgrade(w http.ResponseWriter, r *http.Request, backends 
 		return fmt.Errorf("不是有效的 WebSocket 升级请求")
 	}
 
-	// 选择后端服务器
-	backend, err := s.selectBackend(backends)
-	if err != nil {
-		return fmt.Errorf("选择后端服务器失败: %v", err)
-	}
-
 	// 升级客户端连接
 	clientConn, err := s.upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		return fmt.Errorf("升级客户端连接失败: %v", err)
 	}
 
+	// 后端服务直接由proxy代理 直接转发到开启ws的端口
+	backend := fmt.Sprintf("127.0.0.1:%s", config.GetWsPort(config.Get()))
 	// 连接到后端服务器
 	serverConn, err := s.connectToBackend(backend, r)
 	if err != nil {
@@ -512,7 +508,7 @@ func (s *Server) GetStats() *Stats {
 		MaxMessageSize:    int(s.config.MaxMessageSize),
 		BufferSize:        s.config.BufferSize,
 		PingInterval:      utils.ToSecond(s.config.PingInterval),
-		PongTimeout:       utils.ToSecond(s.config.PongTimeout),
+		PongTimeout:       utils.ToSecond(s.config.PongTimeout) * time.Second,
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"sync"
@@ -12,6 +13,36 @@ import (
 	"sandwich/config"
 	"sandwich/log"
 )
+
+// limitedReader 用于限制请求体读取，超出限制时直接拒绝
+type limitedReader struct {
+	io.ReadCloser
+	limit    int64
+	read     int64
+	logger   *log.Log
+	host     string
+	exceeded bool
+}
+
+func (lr *limitedReader) Read(p []byte) (n int, err error) {
+	if lr.exceeded {
+		return 0, fmt.Errorf("request entity too large")
+	}
+
+	n, err = lr.ReadCloser.Read(p)
+	lr.read += int64(n)
+
+	if lr.read > lr.limit {
+		lr.exceeded = true
+		if lr.logger != nil {
+			lr.logger.ErrorF("请求体超出限制被拒绝: Host=%s, Read=%d, Limit=%d",
+				lr.host, lr.read, lr.limit)
+		}
+		return 0, fmt.Errorf("request entity too large")
+	}
+
+	return n, err
+}
 
 // Manager 服务器管理器
 // 负责管理多个服务器实例的启动、停止和监控
@@ -127,7 +158,40 @@ func (m *Manager) startServer(serverConfig config.ServerConfig) error {
 		WriteTimeout:      30 * time.Second,
 		IdleTimeout:       60 * time.Second,
 		ReadHeaderTimeout: 10 * time.Second,
-		Protocols:         proto,
+		// 设置最大请求体大小
+		MaxHeaderBytes: 1 << 20, // 1MB header limit
+		Protocols:      proto,
+	}
+
+	// 配置最大请求体大小
+	if serverConfig.MaxRequestBody > 0 {
+		// 通过中间件控制请求体大小
+		originalHandler := instance.Server.Handler
+		instance.Server.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// 检查Content-Length头，如果超出限制直接返回413
+			if r.ContentLength > serverConfig.MaxRequestBody {
+				w.Header().Set("Connection", "close")
+				w.WriteHeader(http.StatusRequestEntityTooLarge)
+				w.Write([]byte("Request entity too large"))
+				m.logger.Printf("请求体过大被拒绝: Host=%s, ContentLength=%d, Limit=%d",
+					r.Host, r.ContentLength, serverConfig.MaxRequestBody)
+				return
+			}
+
+			// 如果没有Content-Length头或为-1，使用limitedReader进行保护性限制
+			if r.ContentLength == -1 || r.ContentLength == 0 {
+				r.Body = &limitedReader{
+					ReadCloser: r.Body,
+					limit:      serverConfig.MaxRequestBody,
+					logger:     m.logger,
+					host:       r.Host,
+				}
+			}
+
+			originalHandler.ServeHTTP(w, r)
+		})
+		m.logger.Printf("服务器 %s 设置最大请求体大小: %d bytes (%.2f MB)",
+			serverConfig.Name, serverConfig.MaxRequestBody, float64(serverConfig.MaxRequestBody)/(1024*1024))
 	}
 
 	// 创建监听器

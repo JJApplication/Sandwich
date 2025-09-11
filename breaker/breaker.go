@@ -33,14 +33,14 @@ type BreakerBucket struct {
 type Breaker struct {
 	mux           sync.Mutex
 	serviceBucket map[string]*BreakerBucket
-	cf            *config.MiddlewareConfig
+	cf            *config.BreakConfig
 }
 
 func NewBreaker() *Breaker {
 	return &Breaker{
 		serviceBucket: make(map[string]*BreakerBucket, 10),
 		mux:           sync.Mutex{},
-		cf:            config.Get().GetMiddle("breaker"),
+		cf:            &config.Get().Break,
 	}
 }
 
@@ -73,27 +73,23 @@ func (b *Breaker) Set(domain string) bool {
 func (b *Breaker) add(domain string) {
 	b.mux.Lock()
 	b.serviceBucket[domain] = &BreakerBucket{
-		errorConn: b.cf.GetInt("limit"),
-		bucket:    make(chan int, b.cf.GetInt("limit")),
+		errorConn: b.cf.MaxError,
+		bucket:    make(chan int, b.cf.Bucket),
 	}
 	b.mux.Unlock()
 }
 
 // Reset 自定重置
 func (b *Breaker) Reset() {
-	ticker := time.Tick(time.Duration(b.cf.GetInt("reset")) * time.Second)
+	ticker := time.Tick(time.Duration(b.cf.Reset) * time.Second)
 	for range ticker {
 		for domain, s := range b.serviceBucket {
 			b.mux.Lock()
-			s.bucket = make(chan int, b.cf.GetInt("limit"))
+			s.bucket = make(chan int, b.cf.Bucket)
 			log.InfoF("[%s] breaker now is reset\n", domain)
 			b.mux.Unlock()
 		}
 	}
-}
-
-func (b *Breaker) Check() bool {
-	return b.cf.Enabled
 }
 
 func Get(domain string) bool {

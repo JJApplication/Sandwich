@@ -46,7 +46,15 @@ func isDefaultDomain(domain string) bool {
 
 // ServeHTTP 实现 http.Handler 接口
 func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	// 转发到代理处理器
+	// 检查是否为WebSocket升级请求
+	if r.isWebSocketRequest(req) {
+		// 对于WebSocket请求，需要特殊处理
+		// 这里直接转发到代理处理器，让它来处理WebSocket升级
+		r.proxy.ServeHTTP(w, req)
+		return
+	}
+
+	// 对于普通HTTP请求，转发到代理处理器
 	r.proxy.ServeHTTP(w, req)
 }
 
@@ -75,26 +83,6 @@ func (r *Router) matchWildcard(pattern, host string) bool {
 	return strings.HasSuffix(host, "."+suffix) || host == suffix
 }
 
-// isProtocolSupported 检查协议是否支持
-func (r *Router) isProtocolSupported(req *http.Request, domainConfig *config.DomainConfig) bool {
-	// 如果没有指定支持的协议，默认支持所有
-	//if len(domainConfig.Protocols) == 0 {
-	//	return true
-	//}
-	//
-	//// 检测请求协议
-	//reqProtocol := r.detectProtocol(req)
-	//
-	//// 检查是否在支持列表中
-	//for _, protocol := range domainConfig.Protocols {
-	//	if strings.EqualFold(protocol, reqProtocol) {
-	//		return true
-	//	}
-	//}
-
-	return true
-}
-
 // detectProtocol 检测请求协议
 func (r *Router) detectProtocol(req *http.Request) string {
 	// 检查是否为 WebSocket 升级请求
@@ -117,8 +105,20 @@ func (r *Router) detectProtocol(req *http.Request) string {
 
 // isWebSocketRequest 检查是否为 WebSocket 请求
 func (r *Router) isWebSocketRequest(req *http.Request) bool {
-	return strings.ToLower(req.Header.Get("Connection")) == "upgrade" &&
-		strings.ToLower(req.Header.Get("Upgrade")) == "websocket"
+	// 检查Connection和Upgrade头是否存在且值正确
+	connection := strings.ToLower(req.Header.Get("Connection"))
+	upgrade := strings.ToLower(req.Header.Get("Upgrade"))
+	
+	// 检查Connection头是否包含"upgrade"（可能有多个值）
+	hasUpgradeConnection := false
+	for _, part := range strings.Split(connection, ",") {
+		if strings.TrimSpace(part) == "upgrade" {
+			hasUpgradeConnection = true
+			break
+		}
+	}
+	
+	return hasUpgradeConnection && upgrade == "websocket"
 }
 
 // setDomainContext 在请求上下文中设置域名配置

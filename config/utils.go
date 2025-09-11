@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 )
 
@@ -438,4 +439,16 @@ func GetDomains(config *Config) []string {
 	}
 
 	return domains
+}
+
+func GetWsPort(config *Config) string {
+	for _, serverConfig := range config.Servers {
+		for _, domainConfig := range serverConfig.DomainConfig {
+			if domainConfig.UseWebsocket {
+				return strconv.Itoa(serverConfig.Port)
+			}
+		}
+	}
+
+	return ""
 }

@@ -7,6 +7,7 @@
       "use_http2": false,
       "protocol": "http",
       "enabled": true,
+      "max_request_body": 33554432,
       "domains": null
     },
     {
@@ -16,6 +17,7 @@
       "use_http2": false,
       "protocol": "https",
       "enabled": false,
+      "max_request_body": 33554432,
       "tls": {
         "cert_file": "/path/to/cert.pem",
         "key_file": "/path/to/key.pem",
@@ -26,20 +28,21 @@
   ],
   "middleware": [
     {
-      "name": "rate_limit",
+      "name": "limiter",
       "enabled": true,
       "order": 1,
       "config": {
-        "requests_per_second": 100
+        "limit": 100,
+        "reset": 60
       }
     },
     {
-      "name": "circuit_breaker",
+      "name": "breaker",
       "enabled": true,
       "order": 2,
       "config": {
-        "failure_threshold": 5,
-        "reset_timeout": "60s"
+        "limit": 20,
+        "reset": 10
       }
     }
   ],
@@ -47,21 +50,13 @@
     "http3": {
       "enabled": false,
       "max_connections": 1000,
-      "idle_timeout": {
-        "Duration": 300000000000
-      },
-      "keep_alive": {
-        "Duration": 30000000000
-      }
+      "idle_timeout": 60,
+      "keep_alive": 30
     },
     "websocket": {
       "enabled": false,
-      "ping_interval": {
-        "Duration": 30000000000
-      },
-      "pong_timeout": {
-        "Duration": 10000000000
-      },
+      "ping_interval": 10,
+      "pong_timeout": 10,
       "max_message_size": 1048576,
       "buffer_size": 1024
     },
@@ -78,9 +73,7 @@
     "cache": {
       "enabled": true,
       "size": 1000,
-      "ttl": {
-        "Duration": 600000000000
-      },
+      "ttl": 60,
       "strategy": "lru"
     }
   },
@@ -88,9 +81,7 @@
     "mongo": {
       "url": "mongodb://localhost:27017",
       "database": "sandwich",
-      "timeout": {
-        "Duration": 10000000000
-      }
+      "timeout": 10
     },
     "influx": {
       "enabled": false,
@@ -105,9 +96,7 @@
     "enabled": true,
     "port": 9090,
     "path": "/metrics",
-    "interval": {
-      "Duration": 15000000000
-    },
+    "interval": 15,
     "prometheus": true
   },
   "security": {
@@ -115,6 +104,67 @@
     "allow_ips": [],
     "deny_ips": [],
     "rate_limit": 1000
+  },
+  "flow_control": {
+    "enabled": true,
+    "global_limit": {
+      "requests": 1000,
+      "window": "60s",
+      "unit": "s"
+    },
+    "rules": [
+      {
+        "name": "api-limit",
+        "enabled": true,
+        "priority": 1,
+        "match_type": "host",
+        "match_value": "api.example.com",
+        "header_key": "",
+        "limits": [
+          {
+            "requests": 10,
+            "window": "100s",
+            "unit": "s"
+          },
+          {
+            "requests": 100,
+            "window": "10min",
+            "unit": "min"
+          }
+        ],
+        "action": "block",
+        "description": "API服务限流"
+      },
+      {
+        "name": "user-agent-limit",
+        "enabled": true,
+        "priority": 2,
+        "match_type": "header",
+        "match_value": "BadBot",
+        "header_key": "User-Agent",
+        "limits": [
+          {
+            "requests": 1,
+            "window": "60s",
+            "unit": "s"
+          }
+        ],
+        "action": "block",
+        "description": "封禁恶意爬虫"
+      }
+    ],
+    "recording": {
+      "enabled": true,
+      "record_blocked": true,
+      "record_allowed": false,
+      "storage_type": "file",
+      "retention_period": "30d"
+    }
+  },
+  "break": {
+    "bucket": 0,
+    "max_error": 0,
+    "reset": 0
   },
   "front_proxy": {
     "grpc_addr": "",
@@ -128,9 +178,16 @@
     "backend_header": "X-Proxy-Internal-Local",
     "proxy_app": "X-Proxy-Backend"
   },
+  "log": {
+    "log_level": "",
+    "log_file": "",
+    "color": false
+  },
   "custom_header": {
     "Proxy-Copyright": "renj.io",
     "Proxy-Server": "Sandwich"
   },
+  "domain_map": "",
+  "job_sync_time": 0,
   "debug": false
 }

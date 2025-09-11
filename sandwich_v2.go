@@ -19,6 +19,7 @@ import (
 	"sandwich/jobs"
 	"sandwich/proxy"
 	"sandwich/utils"
+	"strings"
 	"syscall"
 	"time"
 
@@ -123,7 +124,10 @@ func (app *Application) loadConfig(configPath string) error {
 		app.logger.Printf("配置警告: %s", warning)
 	}
 
+	// 注册全局配置
 	app.configLoader.RegisterGlobalConfig(app.config)
+	// 刷新日志配置
+	log.Reload(app.config.Log)
 	return nil
 }
 
@@ -140,7 +144,7 @@ func (app *Application) initializeComponents() error {
 
 	// 初始化 HTTP/3 服务器
 	if app.config.Features.HTTP3.Enabled {
-
+		app.http3Server = http3.NewServer(app.config.Features.HTTP3, app.router, app.logger)
 	}
 
 	// 初始化 WebSocket 服务器
@@ -165,11 +169,8 @@ func (app *Application) createProxyHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// 检查是否为 WebSocket 升级请求
 		if app.wsServer != nil && app.isWebSocketRequest(r) {
-			// 获取后端服务列表
-			backends := app.getBackendsFromRequest(r)
-
 			// 处理 WebSocket 升级
-			if err := app.wsServer.HandleUpgrade(w, r, backends); err != nil {
+			if err := app.wsServer.HandleUpgrade(w, r); err != nil {
 				app.logger.Printf("WebSocket 升级失败: %v", err)
 				http.Error(w, "WebSocket upgrade failed", http.StatusInternalServerError)
 			}
@@ -183,19 +184,20 @@ func (app *Application) createProxyHandler() http.Handler {
 
 // isWebSocketRequest 检查是否为 WebSocket 请求
 func (app *Application) isWebSocketRequest(r *http.Request) bool {
-	return r.Header.Get("Connection") == "Upgrade" && r.Header.Get("Upgrade") == "websocket"
-}
+	// 检查Connection和Upgrade头是否存在且值正确
+	connection := strings.ToLower(r.Header.Get("Connection"))
+	upgrade := strings.ToLower(r.Header.Get("Upgrade"))
 
-// getBackendsFromRequest 从请求中获取后端服务列表
-func (app *Application) getBackendsFromRequest(r *http.Request) []string {
-	// 从路由器设置的头部获取后端列表
-	backendsHeader := r.Header.Get("X-Sandwich-Backends")
-	if backendsHeader != "" {
-		return []string{backendsHeader} // 简化处理
+	// 检查Connection头是否包含"upgrade"（可能有多个值）
+	hasUpgradeConnection := false
+	for _, part := range strings.Split(connection, ",") {
+		if strings.TrimSpace(part) == "upgrade" {
+			hasUpgradeConnection = true
+			break
+		}
 	}
 
-	// 如果没有设置，返回默认后端
-	return []string{"127.0.0.1:8080"}
+	return hasUpgradeConnection && upgrade == "websocket"
 }
 
 // createReverseProxy 创建反向代理
@@ -492,13 +494,13 @@ func main() {
 	// 如果指定了配置文件，检查文件是否存在
 	if *configPath != "" {
 		if _, err := os.Stat(*configPath); os.IsNotExist(err) {
-			log.ErrorF("配置文件不存在: %s", *configPath)
+			log.Printf("配置文件不存在: %s", *configPath)
 			return
 		}
 		// 转换为绝对路径
 		absPath, err := filepath.Abs(*configPath)
 		if err != nil {
-			log.ErrorF("获取配置文件绝对路径失败: %v", err)
+			log.Printf("获取配置文件绝对路径失败: %v", err)
 			return
 		}
 		*configPath = absPath
@@ -509,7 +511,7 @@ func main() {
 
 	// 初始化应用程序
 	if err := app.Initialize(*configPath); err != nil {
-		log.ErrorF("初始化应用程序失败: %v", err)
+		log.Printf("初始化应用程序失败: %v", err)
 		return
 	}
 

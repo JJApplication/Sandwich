@@ -114,5 +114,10 @@
     "Proxy-Copyright": "renj.io",
     "Proxy-Server": "Sandwich"
   },
-  "debug": false
+  "debug": false,
+  "log": {
+    "log_level": "info",
+    "log_file": "",
+    "color": true
+  }
 }
