@@ -1,0 +1,118 @@
+{
+  "servers": [
+    {
+      "name": "http-server",
+      "host": "0.0.0.0",
+      "port": 80,
+      "use_http2": false,
+      "protocol": "http",
+      "enabled": true,
+      "domains": null
+    },
+    {
+      "name": "http-server8080",
+      "host": "0.0.0.0",
+      "port": 8080,
+      "use_http2": false,
+      "protocol": "http",
+      "enabled": true,
+      "domains": null
+    }
+  ],
+  "middleware": [
+    {
+      "name": "limiter",
+      "enabled": true,
+      "order": 1,
+      "config": {
+        "limit": 100,
+        "reset": 60
+      }
+    },
+    {
+      "name": "breaker",
+      "enabled": true,
+      "order": 2,
+      "config": {
+        "limit": 20,
+        "reset": 10
+      }
+    }
+  ],
+  "features": {
+    "http3": {
+      "enabled": false,
+      "max_connections": 1000,
+      "idle_timeout": 60,
+      "keep_alive": 60
+    },
+    "websocket": {
+      "enabled": false,
+      "ping_interval": 30,
+      "pong_timeout": 10,
+      "max_message_size": 1048576,
+      "buffer_size": 1024
+    },
+    "gzip": {
+      "enabled": true,
+      "level": 6,
+      "types": [
+        "text/html",
+        "text/css",
+        "text/javascript",
+        "application/json"
+      ]
+    },
+    "cache": {
+      "enabled": true,
+      "size": 1000,
+      "ttl": 60,
+      "strategy": "lru"
+    }
+  },
+  "database": {
+    "mongo": {
+      "url": "mongodb://localhost:27017",
+      "database": "sandwich",
+      "timeout": 10
+    },
+    "influx": {
+      "enabled": false,
+      "url": "http://localhost:8086",
+      "token": "",
+      "org": "sandwich",
+      "bucket": "metrics",
+      "password": ""
+    }
+  },
+  "monitor": {
+    "enabled": true,
+    "port": 9090,
+    "path": "/metrics",
+    "interval": 10,
+    "prometheus": true
+  },
+  "security": {
+    "strict_mode": false,
+    "allow_ips": [],
+    "deny_ips": [],
+    "rate_limit": 1000
+  },
+  "front_proxy": {
+    "grpc_addr": "",
+    "frontend_flag": "",
+    "frontend_host": "",
+    "frontend_port": 0
+  },
+  "proxy_header": {
+    "trace_id": "X-Gateway-Trace-Id",
+    "frontend_host_header": "X-Proxy-Internal-Host",
+    "backend_header": "X-Proxy-Internal-Local",
+    "proxy_app": "X-Proxy-Backend"
+  },
+  "custom_header": {
+    "Proxy-Copyright": "renj.io",
+    "Proxy-Server": "Sandwich"
+  },
+  "debug": false
+}

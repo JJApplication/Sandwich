@@ -1,0 +1,230 @@
+# Sandwich 代理服务配置文件示例
+# 此文件展示了所有可用的配置选项和推荐设置
+
+# 服务器配置 - 定义监听的服务器实例
+servers:
+  # HTTP 服务器
+  - name: "http-server"
+    host: "0.0.0.0"          # 监听地址，0.0.0.0 表示监听所有接口
+    port: 80                 # HTTP 默认端口
+    protocol: "http"         # 协议类型
+    enabled: true            # 是否启用此服务器
+
+  # HTTPS 服务器
+  - name: "https-server"
+    host: "0.0.0.0"
+    port: 443                # HTTPS 默认端口
+    protocol: "https"
+    enabled: true
+    tls:                     # TLS 配置
+      cert_file: "/etc/ssl/certs/server.crt"  # 证书文件路径
+      key_file: "/etc/ssl/private/server.key" # 私钥文件路径
+      auto_tls: false        # 是否启用自动 TLS（Let's Encrypt）
+
+  # HTTP/3 服务器（可选）
+  - name: "http3-server"
+    host: "0.0.0.0"
+    port: 443                # HTTP/3 通常使用 443 端口（UDP）
+    protocol: "http3"
+    enabled: false           # 默认禁用，需要时启用
+    tls:
+      cert_file: "/etc/ssl/certs/server.crt"
+      key_file: "/etc/ssl/private/server.key"
+      auto_tls: false
+
+  # 自定义端口服务器
+  - name: "custom-server"
+    host: "127.0.0.1"        # 仅本地访问
+    port: 8080
+    protocol: "http"
+    enabled: false
+
+# 域名配置 - 定义域名到后端服务的映射
+domains:
+  # 主要 API 服务
+  - domain: "api.example.com"
+    servers: ["https-server", "http3-server"]  # 绑定到的服务器
+    backends:                                   # 后端服务列表
+      - "127.0.0.1:8080"
+      - "127.0.0.1:8081"
+      - "127.0.0.1:8082"
+    load_balance: "round_robin"                 # 负载均衡算法
+    health_check: true                          # 启用健康检查
+    sticky: false                              # 会话保持
+    timeout: "30s"                             # 请求超时时间
+    retries: 3                                 # 重试次数
+
+  # WebSocket 服务
+  - domain: "ws.example.com"
+    servers: ["https-server"]
+    backends:
+      - "127.0.0.1:9090"
+      - "127.0.0.1:9091"
+    protocols: ["websocket"]                   # 支持的协议
+    load_balance: "least_connections"          # WebSocket 适合最少连接算法
+    health_check: true
+    sticky: true                               # WebSocket 需要会话保持
+    timeout: "60s"
+    retries: 1
+
+  # 静态资源服务
+  - domain: "static.example.com"
+    servers: ["http-server", "https-server"]
+    backends:
+      - "127.0.0.1:8090"
+    load_balance: "random"
+    health_check: false                        # 静态资源可以不需要健康检查
+    timeout: "10s"
+    retries: 2
+
+  # 默认域名（兜底）
+  - domain: "example.com"
+    servers: ["http-server", "https-server"]
+    backends:
+      - "127.0.0.1:8000"
+    load_balance: "random"
+    health_check: true
+    timeout: "30s"
+    retries: 3
+
+# 中间件配置 - 按执行顺序排列
+middleware:
+  # 速率限制中间件
+  - name: "rate_limit"
+    enabled: true
+    order: 1                                   # 执行顺序
+    config:
+      requests_per_second: 1000               # 每秒请求数限制
+      burst_size: 100                         # 突发请求缓冲
+      key_func: "ip"                          # 限制键函数：ip, user, header
+
+  # 熔断器中间件
+  - name: "circuit_breaker"
+    enabled: true
+    order: 2
+    config:
+      failure_threshold: 5                    # 失败阈值
+      success_threshold: 3                    # 成功阈值（半开状态）
+      timeout: "60s"                          # 熔断超时时间
+      reset_timeout: "30s"                    # 重置超时时间
+
+  # 请求日志中间件
+  - name: "access_log"
+    enabled: true
+    order: 3
+    config:
+      format: "json"                          # 日志格式：json, text
+      include_headers: false                  # 是否包含请求头
+      include_body: false                     # 是否包含请求体
+
+  # CORS 中间件
+  - name: "cors"
+    enabled: false                            # 默认禁用
+    order: 4
+    config:
+      allowed_origins: ["*"]
+      allowed_methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+      allowed_headers: ["*"]
+      max_age: 86400
+
+# 功能特性配置
+features:
+  # HTTP/3 配置
+  http3:
+    enabled: false                            # 是否启用 HTTP/3
+    max_connections: 10000                    # 最大连接数
+    idle_timeout: "5m"                        # 空闲超时
+    keep_alive: "30s"                         # 保活时间
+
+  # WebSocket 配置
+  websocket:
+    enabled: true                             # 是否启用 WebSocket
+    ping_interval: "30s"                      # 心跳间隔
+    pong_timeout: "10s"                       # 心跳响应超时
+    max_message_size: 1048576                 # 最大消息大小（1MB）
+    buffer_size: 4096                         # 缓冲区大小
+
+  # Gzip 压缩配置
+  gzip:
+    enabled: true                             # 是否启用 Gzip
+    level: 6                                  # 压缩级别 1-9
+    types:                                    # 压缩的 MIME 类型
+      - "text/html"
+      - "text/css"
+      - "text/javascript"
+      - "application/javascript"
+      - "application/json"
+      - "application/xml"
+      - "text/xml"
+
+  # 缓存配置
+  cache:
+    enabled: true                             # 是否启用缓存
+    size: 10000                               # 缓存条目数
+    ttl: "10m"                                # 缓存过期时间
+    strategy: "lru"                           # 缓存策略：lru, lfu, fifo
+
+# 数据库配置
+database:
+  # MongoDB 配置
+  mongo:
+    url: "mongodb://localhost:27017"          # MongoDB 连接 URL
+    database: "sandwich"                      # 数据库名称
+    timeout: "10s"                            # 连接超时时间
+
+  # InfluxDB 配置（监控数据存储）
+  influx:
+    enabled: false                            # 是否启用 InfluxDB
+    url: "http://localhost:8086"              # InfluxDB 连接 URL
+    token: "your-influx-token"                # 访问令牌
+    org: "sandwich"                           # 组织名称
+    bucket: "metrics"                         # 存储桶名称
+    password: ""                              # 密码（v1.x 兼容）
+
+# 监控配置
+monitor:
+  enabled: true                               # 是否启用监控
+  port: 9090                                  # 监控端口
+  path: "/metrics"                            # 监控路径
+  interval: "15s"                             # 监控数据收集间隔
+  prometheus: true                            # 是否启用 Prometheus 格式
+
+# 安全配置
+security:
+  strict_mode: false                          # 严格模式（非 2xx 状态码后的响应无效）
+  allow_ips: []                               # IP 白名单（空表示允许所有）
+  deny_ips: []                                # IP 黑名单
+  rate_limit: 10000                           # 全局速率限制（每秒请求数）
+
+# 环境变量覆盖说明：
+# 以下环境变量可以覆盖配置文件中的对应设置：
+#
+# 服务器配置：
+# - SANDWICH_HOST: 覆盖 HTTP 服务器的 host
+# - SANDWICH_PORT: 覆盖 HTTP 服务器的 port
+#
+# 数据库配置：
+# - SANDWICH_MONGO_URL: 覆盖 database.mongo.url
+# - SANDWICH_DB_NAME: 覆盖 database.mongo.database
+# - SANDWICH_INFLUX_URL: 覆盖 database.influx.url
+# - SANDWICH_INFLUX_TOKEN: 覆盖 database.influx.token
+# - SANDWICH_INFLUX_ORG: 覆盖 database.influx.org
+# - SANDWICH_INFLUX_BUCKET: 覆盖 database.influx.bucket
+# - SANDWICH_INFLUX_PWD: 覆盖 database.influx.password
+# - SANDWICH_ENABLE_INFLUX: 覆盖 database.influx.enabled
+#
+# 功能配置：
+# - SANDWICH_DEBUG: 启用调试模式
+# - SANDWICH_STRICT_MODE: 覆盖 security.strict_mode
+# - SANDWICH_GZIP: 覆盖 features.gzip.enabled
+# - SANDWICH_CACHE_SIZE: 覆盖 features.cache.size
+#
+# 限流和熔断：
+# - SANDWICH_LIMIT: 覆盖 security.rate_limit
+# - SANDWICH_BREAKER_LIMIT: 覆盖熔断器的失败阈值
+#
+# 使用示例：
+# export SANDWICH_HOST="0.0.0.0"
+# export SANDWICH_PORT="8080"
+# export SANDWICH_MONGO_URL="mongodb://user:pass@localhost:27017"
+# ./sandwich --config=/path/to/config.yaml

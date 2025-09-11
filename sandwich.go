@@ -1,3 +1,5 @@
+//go:build v1
+
 /*
 Project: Sandwich sandwich.go
 Created: 2021/12/12 by Landers
@@ -8,30 +10,35 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"sandwich/breaker"
+	"sandwich/cache"
 	"sandwich/constant"
+	"sandwich/data"
+	"sandwich/flow"
+	"sandwich/jobs"
 	"sandwich/log"
 )
 
-func main() {
+func v1() {
 	constant.InitConfigFromEnvs()
 	log.InitLog()
-	InitMongo()
-	InitInflux()
-	InitPool()
+	data.InitMongo()
+	data.InitInflux()
+	data.InitPool()
 	// load noengine map
-	InitNoEngineDomainMap()
+	cache.InitNoEngineDomainMap()
 	// load helios config
 	InitHeliosConfig()
 
 	// init gzip cache for static pages
-	initGzipCache()
+	cache.initGzipCache()
 
 	// start sync jobs
-	InitSyncJobs()
+	jobs.InitSyncJobs()
 
 	// init worker
-	InitBreaker()
-	InitLimiter()
+	breaker.InitBreaker()
+	flow.InitLimiter()
 	log.InfoF("proxy server start on: %s:%s", constant.Host, constant.Port)
 	err := http.ListenAndServe(fmt.Sprintf("%s:%s", constant.Host, constant.Port), Proxy())
 	if err != nil {

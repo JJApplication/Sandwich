@@ -1,0 +1,136 @@
+{
+  "servers": [
+    {
+      "name": "http-server",
+      "host": "0.0.0.0",
+      "port": 80,
+      "use_http2": false,
+      "protocol": "http",
+      "enabled": true,
+      "domains": null
+    },
+    {
+      "name": "https-server",
+      "host": "0.0.0.0",
+      "port": 443,
+      "use_http2": false,
+      "protocol": "https",
+      "enabled": false,
+      "tls": {
+        "cert_file": "/path/to/cert.pem",
+        "key_file": "/path/to/key.pem",
+        "auto_tls": false
+      },
+      "domains": null
+    }
+  ],
+  "middleware": [
+    {
+      "name": "rate_limit",
+      "enabled": true,
+      "order": 1,
+      "config": {
+        "requests_per_second": 100
+      }
+    },
+    {
+      "name": "circuit_breaker",
+      "enabled": true,
+      "order": 2,
+      "config": {
+        "failure_threshold": 5,
+        "reset_timeout": "60s"
+      }
+    }
+  ],
+  "features": {
+    "http3": {
+      "enabled": false,
+      "max_connections": 1000,
+      "idle_timeout": {
+        "Duration": 300000000000
+      },
+      "keep_alive": {
+        "Duration": 30000000000
+      }
+    },
+    "websocket": {
+      "enabled": false,
+      "ping_interval": {
+        "Duration": 30000000000
+      },
+      "pong_timeout": {
+        "Duration": 10000000000
+      },
+      "max_message_size": 1048576,
+      "buffer_size": 1024
+    },
+    "gzip": {
+      "enabled": true,
+      "level": 6,
+      "types": [
+        "text/html",
+        "text/css",
+        "text/javascript",
+        "application/json"
+      ]
+    },
+    "cache": {
+      "enabled": true,
+      "size": 1000,
+      "ttl": {
+        "Duration": 600000000000
+      },
+      "strategy": "lru"
+    }
+  },
+  "database": {
+    "mongo": {
+      "url": "mongodb://localhost:27017",
+      "database": "sandwich",
+      "timeout": {
+        "Duration": 10000000000
+      }
+    },
+    "influx": {
+      "enabled": false,
+      "url": "http://localhost:8086",
+      "token": "",
+      "org": "sandwich",
+      "bucket": "metrics",
+      "password": ""
+    }
+  },
+  "monitor": {
+    "enabled": true,
+    "port": 9090,
+    "path": "/metrics",
+    "interval": {
+      "Duration": 15000000000
+    },
+    "prometheus": true
+  },
+  "security": {
+    "strict_mode": false,
+    "allow_ips": [],
+    "deny_ips": [],
+    "rate_limit": 1000
+  },
+  "front_proxy": {
+    "grpc_addr": "",
+    "frontend_flag": "",
+    "frontend_host": "",
+    "frontend_port": 0
+  },
+  "proxy_header": {
+    "trace_id": "X-Gateway-Trace-Id",
+    "frontend_host_header": "X-Proxy-Internal-Host",
+    "backend_header": "X-Proxy-Internal-Local",
+    "proxy_app": "X-Proxy-Backend"
+  },
+  "custom_header": {
+    "Proxy-Copyright": "renj.io",
+    "Proxy-Server": "Sandwich"
+  },
+  "debug": false
+}

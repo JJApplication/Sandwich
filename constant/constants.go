@@ -1,3 +1,5 @@
+//go:build v1
+
 /*
    Create: 2025/8/5
    Project: Sandwich
@@ -9,11 +11,6 @@ package constant
 
 import (
 	"time"
-)
-
-const (
-	Sandwich  = "Sandwich"
-	Copyright = "renj.io"
 )
 
 var (
@@ -77,7 +74,7 @@ func InitConfigFromEnvs() {
 	StrictMode = LoaderEnv("StrictMode").Bool(false)
 	Debug = LoaderEnv("Debug").Bool(false)
 	Gzip = LoaderEnv("Gzip").Bool(false)
-	NoEngineDomain = LoaderEnv("NoEngineDomain").String("dojson")
+	NoEngineDomain = LoaderEnv("NoEngineDomain").String("domain.json")
 	HeliosAddress = LoaderEnv("HeliosAddress").String("/var/run/Helios.sock")
 	FrontendFlag = LoaderEnv("FrontendFlag").String("X-Proxy-Internal-Front")
 	FrontendHost = LoaderEnv("FrontendHost").String("127.0.0.1")
