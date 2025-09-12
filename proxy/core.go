@@ -55,7 +55,7 @@ func newProxy() *httputil.ReverseProxy {
 			switch request.Header.Get(serror.SandwichInternalFlag) {
 			case serror.SandwichBucketLimit:
 				log.Debug("reach breaker limit")
-				writer.WriteHeader(http.StatusTooManyRequests)
+				writer.WriteHeader(http.StatusGatewayTimeout)
 				return
 			case serror.SandwichReqLimit:
 				log.Debug("reach flow control limit")

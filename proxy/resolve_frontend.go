@@ -30,7 +30,7 @@ func resolveFrontend(req *http.Request) *url.URL {
 	// 根据域名获取前端app
 	app := cache.AppDomainMap[host]
 	if app.Frontend != "" {
-		log.ErrorF("doamin resolved -> [%s] : [%s]\n", host, app)
+		log.InfoF("doamin resolved -> [%s] : [%s]\n", host, app)
 		if config.Get().FrontProxy.FrontendPort <= 0 {
 			log.ErrorF("app port not found: [%s]\n", app.Frontend)
 			return nil

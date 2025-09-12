@@ -20,6 +20,7 @@ func ParseRequest(req *http.Request) *url.URL {
 	if !breaker.Get(host) {
 		data.AddInfluxData(req, data.StatBreak)
 		req.Header.Set(serror.SandwichInternalFlag, serror.SandwichBucketLimit)
+		log.DebugF("host: %s, client %s has been rate limited because of breakdown", host, req.RemoteAddr)
 		return &url.URL{Scheme: constant.Sandwich}
 	}
 
@@ -36,7 +37,7 @@ func ParseRequest(req *http.Request) *url.URL {
 
 			// 添加统计数据
 			data.AddInfluxData(req, data.StatAbort)
-			log.InfoF("client %s has been rate limited: %s", req.RemoteAddr, result.Reason)
+			log.DebugF("client %s has been rate limited: %s", req.RemoteAddr, result.Reason)
 			req.Header.Set(serror.SandwichInternalFlag, serror.SandwichReqLimit)
 			return &url.URL{Scheme: constant.Sandwich}
 		} else {

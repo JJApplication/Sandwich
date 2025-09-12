@@ -169,8 +169,10 @@ func (m *Manager) startServer(serverConfig config.ServerConfig) error {
 		// 通过中间件控制请求体大小和处理重定向
 		originalHandler := instance.Server.Handler
 		instance.Server.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// 内部请求不需要判断重定向
+			
 			// 检查是否需要自动重定向HTTP到HTTPS
-			if serverConfig.Protocol == "http" {
+			if r.Header.Get(m.config.ProxyHeader.BackendHeader) == "" && serverConfig.Protocol == "http" {
 				// 添加调试日志
 				m.logger.DebugF("HTTP请求: Host=%s, URI=%s, Protocol=%s", r.Host, r.RequestURI, serverConfig.Protocol)
 

@@ -130,12 +130,12 @@
         "header_key": "",
         "limits": [
           {
-            "requests": 10,
-            "window": "100s",
+            "requests": 1000,
+            "window": "10s",
             "unit": "s"
           },
           {
-            "requests": 100,
+            "requests": 5000,
             "window": "10min",
             "unit": "min"
           }
