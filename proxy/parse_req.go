@@ -9,12 +9,18 @@ import (
 	"sandwich/flow"
 	"sandwich/log"
 	"sandwich/serror"
+	"strings"
 )
 
-// ParseRequest 代理从Nginx拿到的host 都是带有域名的
-// 直接显示为localhost的地址为不可信地址 直接返回错误
+// ParseRequest 代理从 Nginx 拿到的 host 都是带有域名的
+// 直接显示为 localhost 的地址为不可信地址 直接返回错误
 func ParseRequest(req *http.Request) *url.URL {
+	// 优化：避免重复获取Host
 	host := req.Host
+	// 去除端口号（如果有），优化字符串操作
+	if colonIndex := strings.LastIndex(host, ":"); colonIndex != -1 {
+		host = host[:colonIndex]
+	}
 
 	// 断路器检查
 	if !breaker.Get(host) {

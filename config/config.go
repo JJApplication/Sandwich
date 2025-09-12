@@ -54,13 +54,13 @@ type TLSConfig struct {
 
 // DomainConfig 域名配置结构体
 type DomainConfig struct {
-	Domains      []string `yaml:"domains" json:"domains"`             // 域名
-	UseTLS       bool     `yaml:"use_tls" json:"use_tls"`             // 监听在https
-	AutoRedirect bool     `yaml:"auto_redirect" json:"auto_redirect"` // 自动重定向
-	UseWebsocket bool     `yaml:"use_websocket" json:"use_websocket"` // 开启websocket
-	HSTSMaxAge   int      `yaml:"hsts_max_age" json:"hsts_max_age"`   // HSTS最大生存时间（秒），0表示不设置HSTS
-	HSTSSubdomains bool   `yaml:"hsts_subdomains" json:"hsts_subdomains"` // HSTS是否包含子域名
-	HSTSPreload  bool     `yaml:"hsts_preload" json:"hsts_preload"`   // HSTS是否启用预加载
+	Domains        []string `yaml:"domains" json:"domains"`                 // 域名
+	UseTLS         bool     `yaml:"use_tls" json:"use_tls"`                 // 监听在https
+	AutoRedirect   bool     `yaml:"auto_redirect" json:"auto_redirect"`     // 自动重定向
+	UseWebsocket   bool     `yaml:"use_websocket" json:"use_websocket"`     // 开启websocket
+	HSTSMaxAge     int      `yaml:"hsts_max_age" json:"hsts_max_age"`       // HSTS最大生存时间（秒），0表示不设置HSTS
+	HSTSSubdomains bool     `yaml:"hsts_subdomains" json:"hsts_subdomains"` // HSTS是否包含子域名
+	HSTSPreload    bool     `yaml:"hsts_preload" json:"hsts_preload"`       // HSTS是否启用预加载
 }
 
 // BreakConfig 熔断配置
@@ -238,10 +238,13 @@ type MonitorConfig struct {
 
 // SecurityConfig 安全配置结构体
 type SecurityConfig struct {
-	StrictMode bool     `yaml:"strict_mode" json:"strict_mode"` // 严格模式
-	AllowIPs   []string `yaml:"allow_ips" json:"allow_ips"`     // 允许的IP列表
-	DenyIPs    []string `yaml:"deny_ips" json:"deny_ips"`       // 拒绝的IP列表
-	RateLimit  int      `yaml:"rate_limit" json:"rate_limit"`   // 速率限制
+	StrictMode    bool     `yaml:"strict_mode" json:"strict_mode"`       // 严格模式
+	HSTS          bool     `yaml:"hsts" json:"hsts"`                     // HSTS策略
+	HSTSSubdomain bool     `yaml:"hsts_subdomain" json:"hsts_subdomain"` // 包含子域名
+	HSTSPreload   bool     `yaml:"hsts_preload" json:"hsts_preload"`     // 预加载
+	AllowIPs      []string `yaml:"allow_ips" json:"allow_ips"`           // 允许的IP列表
+	DenyIPs       []string `yaml:"deny_ips" json:"deny_ips"`             // 拒绝的IP列表
+	RateLimit     int      `yaml:"rate_limit" json:"rate_limit"`         // 速率限制
 }
 
 type FrontProxyConfig struct {

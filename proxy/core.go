@@ -15,6 +15,7 @@ import (
 	"sandwich/log"
 	"sandwich/serror"
 	"sandwich/utils"
+	"sync"
 	"time"
 )
 
@@ -22,13 +23,44 @@ const (
 	FlushInterval = 500 * time.Millisecond
 )
 
+var (
+	// 全局共享的Transport实例，避免重复创建
+	sharedTransport *http.Transport
+	transportOnce   sync.Once
+)
+
+// getOptimizedTransport 获取优化的HTTP传输层配置
+func getOptimizedTransport() *http.Transport {
+	transportOnce.Do(func() {
+		sharedTransport = &http.Transport{
+			// 连接池配置
+			MaxIdleConns:        100,              // 最大空闲连接数
+			MaxIdleConnsPerHost: 20,               // 每个主机最大空闲连接数
+			MaxConnsPerHost:     50,               // 每个主机最大连接数
+			IdleConnTimeout:     90 * time.Second, // 空闲连接超时
+			// 超时配置
+			ResponseHeaderTimeout: 30 * time.Second, // 响应头超时
+			ExpectContinueTimeout: 1 * time.Second,  // 100-continue超时
+			// 启用TCP keep-alive
+			DisableKeepAlives: false,
+			// 启用HTTP/2支持
+			ForceAttemptHTTP2: true,
+			// 禁用压缩以减少CPU开销（如果不需要）
+			DisableCompression: false,
+		}
+	})
+	return sharedTransport
+}
+
 // http转发
 func newProxy() *httputil.ReverseProxy {
+	cfg := config.Get()
+
 	proxy := &httputil.ReverseProxy{
 		Director: func(request *http.Request) {
 			log.DebugF("parse request Header: %#v\n", request.Header)
 			log.DebugF("parse request Host: %#v\n", request.Host)
-			log.DebugF("parse request Trace-Id: %s\n", request.Header.Get(config.Get().ProxyHeader.TraceId))
+			log.DebugF("parse request Trace-Id: %s\n", request.Header.Get(cfg.ProxyHeader.TraceId))
 			if !cache.ValidateDomain(request) {
 				request.Header.Set(serror.SandwichInternalFlag, serror.SandwichDomainNotAllow)
 				request.URL = &url.URL{Scheme: constant.Sandwich}
@@ -37,7 +69,7 @@ func newProxy() *httputil.ReverseProxy {
 			request.URL = ParseRequest(request)
 			log.DebugF("parse request, URL: %#v\n", request.URL)
 		},
-		Transport:     nil,
+		Transport:     getOptimizedTransport(),
 		FlushInterval: FlushInterval,
 		ErrorLog:      nil,
 		BufferPool:    nil,

@@ -30,7 +30,7 @@ func getDomainPort(host string) []int {
 	return []int{}
 }
 
-// 将端口转换为ip地址 单机的ip都是127.0.0.1
+// DomainReflect 将端口转换为ip地址 单机的ip都是127.0.0.1
 func DomainReflect(host string) []string {
 	group := getDomainPort(host)
 	if len(group) == 0 {

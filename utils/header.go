@@ -45,7 +45,16 @@ func AddSecureHeader(response *http.Response) {
 	response.Header.Set("X-Frame-Options", "DENY")
 
 	// HTTPS相关安全头部
-	response.Header.Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload")
+	if config.Get().Security.HSTS {
+		var hstsHeader = "max-age=31536000;"
+		if config.Get().Security.HSTSSubdomain {
+			hstsHeader += "includeSubDomains;"
+		}
+		if config.Get().Security.HSTSPreload {
+			hstsHeader += "preload"
+		}
+		response.Header.Set("Strict-Transport-Security", hstsHeader)
+	}
 
 	// 防止CSRF攻击 - SameSite Cookie 策略
 	response.Header.Set("Set-Cookie", "SameSite=Strict; Secure; HttpOnly")
