@@ -56,8 +56,11 @@ type TLSConfig struct {
 type DomainConfig struct {
 	Domains      []string `yaml:"domains" json:"domains"`             // 域名
 	UseTLS       bool     `yaml:"use_tls" json:"use_tls"`             // 监听在https
-	AutoTLS      bool     `yaml:"auto_tls" json:"auto_tls"`           // 自动重定向
+	AutoRedirect bool     `yaml:"auto_redirect" json:"auto_redirect"` // 自动重定向
 	UseWebsocket bool     `yaml:"use_websocket" json:"use_websocket"` // 开启websocket
+	HSTSMaxAge   int      `yaml:"hsts_max_age" json:"hsts_max_age"`   // HSTS最大生存时间（秒），0表示不设置HSTS
+	HSTSSubdomains bool   `yaml:"hsts_subdomains" json:"hsts_subdomains"` // HSTS是否包含子域名
+	HSTSPreload  bool     `yaml:"hsts_preload" json:"hsts_preload"`   // HSTS是否启用预加载
 }
 
 // BreakConfig 熔断配置

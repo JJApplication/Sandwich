@@ -4,19 +4,34 @@
       "name": "http-server",
       "host": "0.0.0.0",
       "port": 80,
-      "use_http2": false,
+      "use_http2": true,
       "protocol": "http",
       "enabled": true,
-      "domains": null
+      "domains": [
+        {
+          "domains": ["renj.io", "service.renj.io", "dev.renj.io", "blog.renj.io",
+            "me.renj.io", "gallery.renj.io", "jjapp.renj.io", "pkg.renj.io", "app.renj.io"],
+          "auto_redirect": true
+        }
+      ]
     },
     {
-      "name": "http-server8080",
+      "name": "https",
       "host": "0.0.0.0",
-      "port": 8080,
-      "use_http2": false,
-      "protocol": "http",
+      "port": 443,
+      "use_http2": true,
+      "protocol": "https",
       "enabled": true,
-      "domains": null
+      "tls": {
+        "cert_file": "/renj.io/ssl/fullchain.cer",
+        "key_file": "/renj.io/ssl/ssl.key",
+        "auto_tls": false
+      },
+      "domains": [
+        {
+          "domains": ["renj.io", "service.renj.io"]
+        }
+      ]
     }
   ],
   "middleware": [
@@ -73,7 +88,7 @@
   "database": {
     "mongo": {
       "url": "mongodb://localhost:27017",
-      "database": "sandwich",
+      "database": "ApolloMongo",
       "timeout": 10
     },
     "influx": {
@@ -81,7 +96,7 @@
       "url": "http://localhost:8086",
       "token": "",
       "org": "sandwich",
-      "bucket": "metrics",
+      "bucket": "sandwich",
       "password": ""
     }
   },
@@ -93,16 +108,60 @@
     "prometheus": true
   },
   "security": {
-    "strict_mode": false,
+    "strict_mode": true,
     "allow_ips": [],
     "deny_ips": [],
     "rate_limit": 1000
   },
+  "flow_control": {
+    "enabled": true,
+    "global_limit": {
+      "requests": 1000,
+      "window": "60s",
+      "unit": "s"
+    },
+    "rules": [
+      {
+        "name": "api-limit",
+        "enabled": true,
+        "priority": 1,
+        "match_type": "host",
+        "match_value": "renj.io",
+        "header_key": "",
+        "limits": [
+          {
+            "requests": 10,
+            "window": "100s",
+            "unit": "s"
+          },
+          {
+            "requests": 100,
+            "window": "10min",
+            "unit": "min"
+          }
+        ],
+        "action": "block",
+        "description": "API服务限流"
+      }
+    ],
+    "recording": {
+      "enabled": false,
+      "record_blocked": true,
+      "record_allowed": false,
+      "storage_type": "file",
+      "retention_period": "30d"
+    }
+  },
+  "break": {
+    "bucket": 100,
+    "max_error": 10,
+    "reset": 10
+  },
   "front_proxy": {
-    "grpc_addr": "",
-    "frontend_flag": "",
-    "frontend_host": "",
-    "frontend_port": 0
+    "grpc_addr": "/var/run/Helios.sock",
+    "frontend_flag": "X-Proxy-Internal-Front",
+    "frontend_host": "127.0.0.1",
+    "frontend_port": 7777
   },
   "proxy_header": {
     "trace_id": "X-Gateway-Trace-Id",
@@ -115,6 +174,8 @@
     "Proxy-Server": "Sandwich"
   },
   "debug": false,
+  "domain_map": "domain.json",
+  "job_sync_time": 15,
   "log": {
     "log_level": "info",
     "log_file": "",

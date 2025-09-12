@@ -197,8 +197,6 @@ func (cv *ConfigValidator) validateDomains(config *Config, result *ValidationRes
 		// 验证域名
 		if domain == "" {
 			result.AddError(prefix+".domain", "", "域名不能为空")
-		} else if domainNames[domain] {
-			result.AddError(prefix+".domain", domain, "域名重复")
 		} else if !cv.isValidDomain(domain) {
 			result.AddError(prefix+".domain", domain, "域名格式无效")
 		} else {

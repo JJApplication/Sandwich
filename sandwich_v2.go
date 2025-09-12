@@ -25,7 +25,7 @@ import (
 func main() {
 	// 解析命令行参数
 	var (
-		configPath = flag.String("config", "", "配置文件路径")
+		configPath = flag.String("config", "config.json", "配置文件路径")
 		generate   = flag.Bool("gen", false, "生成配置文件")
 		version    = flag.Bool("version", false, "显示版本信息")
 		help       = flag.Bool("help", false, "显示帮助信息")
@@ -54,7 +54,7 @@ func main() {
 		}
 		return
 	}
-	
+
 	log.InitLog()
 
 	// 如果指定了配置文件，检查文件是否存在

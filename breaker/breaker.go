@@ -11,8 +11,14 @@ package breaker
 import (
 	"sandwich/config"
 	"sandwich/log"
+	"sandwich/utils"
 	"sync"
 	"time"
+)
+
+const (
+	DefaultMaxError = 5
+	DefaultBucket   = 10
 )
 
 // 熔断控制器
@@ -73,8 +79,8 @@ func (b *Breaker) Set(domain string) bool {
 func (b *Breaker) add(domain string) {
 	b.mux.Lock()
 	b.serviceBucket[domain] = &BreakerBucket{
-		errorConn: b.cf.MaxError,
-		bucket:    make(chan int, b.cf.Bucket),
+		errorConn: utils.DefaultInt(b.cf.MaxError, DefaultMaxError),
+		bucket:    make(chan int, utils.DefaultInt(b.cf.Bucket, DefaultBucket)),
 	}
 	b.mux.Unlock()
 }

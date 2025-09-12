@@ -7,6 +7,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
@@ -163,13 +164,67 @@ func (m *Manager) startServer(serverConfig config.ServerConfig) error {
 		Protocols:      proto,
 	}
 
-	// 配置最大请求体大小
-	if serverConfig.MaxRequestBody > 0 {
-		// 通过中间件控制请求体大小
+	// 配置最大请求体大小和自动重定向
+	if serverConfig.MaxRequestBody > 0 || serverConfig.Protocol == "http" {
+		// 通过中间件控制请求体大小和处理重定向
 		originalHandler := instance.Server.Handler
 		instance.Server.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// 检查是否需要自动重定向HTTP到HTTPS
+			if serverConfig.Protocol == "http" {
+				// 添加调试日志
+				m.logger.DebugF("HTTP请求: Host=%s, URI=%s, Protocol=%s", r.Host, r.RequestURI, serverConfig.Protocol)
+
+				// 检查请求的域名是否配置了自动重定向
+				host := r.Host
+				// 移除端口号
+				if colonIndex := strings.LastIndex(host, ":"); colonIndex != -1 {
+					host = host[:colonIndex]
+				}
+
+				m.logger.DebugF("处理域名: %s (原始Host: %s)", host, r.Host)
+
+				// 查找匹配的域名配置
+				for i, domainConfig := range serverConfig.DomainConfig {
+					m.logger.InfoF("检查域名配置 %d: AutoRedirect=%v, Domains=%v", i, domainConfig.AutoRedirect, domainConfig.Domains)
+
+					if domainConfig.AutoRedirect {
+						// 检查当前域名是否在配置的域名列表中
+						for j, configuredDomain := range domainConfig.Domains {
+							m.logger.DebugF("检查域名匹配 %d: %s vs %s", j, host, configuredDomain)
+
+							if host == configuredDomain || (strings.HasPrefix(configuredDomain, "*.") && strings.HasSuffix(host, configuredDomain[1:])) {
+								// 构建HTTPS重定向URL
+								httpsURL := fmt.Sprintf("https://%s%s", r.Host, r.RequestURI)
+								m.logger.DebugF("域名匹配成功，执行重定向: %s -> %s (配置域名: %s)", r.URL.String(), httpsURL, configuredDomain)
+
+								// 执行301永久重定向
+								w.Header().Set("Location", httpsURL)
+
+								// 根据配置设置HSTS头部
+								if domainConfig.HSTSMaxAge > 0 {
+									hstsValue := fmt.Sprintf("max-age=%d", domainConfig.HSTSMaxAge)
+									if domainConfig.HSTSSubdomains {
+										hstsValue += "; includeSubDomains"
+									}
+									if domainConfig.HSTSPreload {
+										hstsValue += "; preload"
+									}
+									w.Header().Set("Strict-Transport-Security", hstsValue)
+									m.logger.DebugF("设置HSTS头部: %s", hstsValue)
+								} else {
+									m.logger.DebugF("未设置HSTS头部 (HSTSMaxAge=0)")
+								}
+
+								w.WriteHeader(http.StatusMovedPermanently)
+								return
+							}
+						}
+					}
+				}
+			}
+
 			// 检查Content-Length头，如果超出限制直接返回413
-			if r.ContentLength > serverConfig.MaxRequestBody {
+			if serverConfig.MaxRequestBody > 0 && r.ContentLength > serverConfig.MaxRequestBody {
 				w.Header().Set("Connection", "close")
 				w.WriteHeader(http.StatusRequestEntityTooLarge)
 				w.Write([]byte("Request entity too large"))
@@ -179,7 +234,7 @@ func (m *Manager) startServer(serverConfig config.ServerConfig) error {
 			}
 
 			// 如果没有Content-Length头或为-1，使用limitedReader进行保护性限制
-			if r.ContentLength == -1 || r.ContentLength == 0 {
+			if serverConfig.MaxRequestBody > 0 && (r.ContentLength == -1 || r.ContentLength == 0) {
 				r.Body = &limitedReader{
 					ReadCloser: r.Body,
 					limit:      serverConfig.MaxRequestBody,

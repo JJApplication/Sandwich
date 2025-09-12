@@ -6,6 +6,7 @@ toolchain go1.24.4
 
 require (
 	github.com/JJApplication/octopus_meta v1.0.1
+	github.com/fatih/color v1.18.0
 	github.com/gookit/goutil v0.5.5
 	github.com/gorilla/websocket v1.5.3
 	github.com/influxdata/influxdb-client-go/v2 v2.10.0
@@ -20,7 +21,6 @@ require (
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/deepmap/oapi-codegen v1.8.2 // indirect
-	github.com/fatih/color v1.18.0 // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/golang/snappy v0.0.1 // indirect
 	github.com/gookit/filter v1.1.2 // indirect

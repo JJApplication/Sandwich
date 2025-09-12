@@ -36,3 +36,20 @@ func AddTrace(response *http.Response) {
 		response.Header.Set(traceIdHeader, traceId)
 	}
 }
+
+// AddSecureHeader 为响应添加安全头部，防止XSS和CSRF攻击
+func AddSecureHeader(response *http.Response) {
+	// 防止XSS攻击
+	response.Header.Set("X-XSS-Protection", "1; mode=block")
+	response.Header.Set("X-Content-Type-Options", "nosniff")
+	response.Header.Set("X-Frame-Options", "DENY")
+
+	// HTTPS相关安全头部
+	response.Header.Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload")
+
+	// 防止CSRF攻击 - SameSite Cookie 策略
+	response.Header.Set("Set-Cookie", "SameSite=Strict; Secure; HttpOnly")
+
+	// 引用策略 - 控制Referer头信息泄露
+	response.Header.Set("Referrer-Policy", "strict-origin-when-cross-origin")
+}

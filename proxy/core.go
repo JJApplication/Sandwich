@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	FlushInterval = 60 * time.Second
+	FlushInterval = 500 * time.Millisecond
 )
 
 // http转发
@@ -45,6 +45,7 @@ func newProxy() *httputil.ReverseProxy {
 			NoCache(response)
 			utils.AddHeader(response)
 			utils.AddTrace(response)
+			utils.AddSecureHeader(response)
 			return nil
 		},
 		ErrorHandler: func(writer http.ResponseWriter, request *http.Request, err error) {

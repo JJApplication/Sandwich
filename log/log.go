@@ -14,6 +14,13 @@ import (
 	"sandwich/constant"
 )
 
+const (
+	InfoLevel = iota
+	WarnLevel
+	ErrorLevel
+	DebugLevel
+)
+
 var (
 	PREFIX = fmt.Sprintf("[%s] ", constant.Sandwich)
 	INFO   = fmt.Sprintf("[%-5s]", "INFO")
@@ -26,6 +33,13 @@ var (
 	colorError = color.New(color.BgRed, color.FgWhite).SprintFunc()    // 红色背景白色文字
 	colorWarn  = color.New(color.BgYellow, color.FgBlack).SprintFunc() // 黄色背景黑色文字
 	colorDebug = color.New(color.BgCyan, color.FgWhite).SprintFunc()   // 青色背景白色文字
+
+	LevelMap = map[int]string{
+		InfoLevel:  INFO,
+		WarnLevel:  WARN,
+		ErrorLevel: ERROR,
+		DebugLevel: DEBUG,
+	}
 )
 
 func InitLog() {
@@ -60,22 +74,22 @@ func GetLogger() *Log {
 }
 
 // 获取带颜色的日志级别标签
-func (l *Log) getColoredLevel(level string) string {
+func (l *Log) getColoredLevel(level int) string {
 	if !l.ColorEnabled {
-		return level
+		return LevelMap[level]
 	}
 
 	switch level {
-	case INFO:
+	case InfoLevel:
 		return colorInfo(fmt.Sprintf("%-5s", "INFO"))
-	case ERROR:
+	case ErrorLevel:
 		return colorError(fmt.Sprintf("%-5s", "ERROR"))
-	case WARN:
+	case WarnLevel:
 		return colorWarn(fmt.Sprintf("%-5s", "WARN"))
-	case DEBUG:
+	case DebugLevel:
 		return colorDebug(fmt.Sprintf("%-5s", "DEBUG"))
 	default:
-		return level
+		return LevelMap[level]
 	}
 }
 
@@ -88,14 +102,20 @@ func (l *Log) SetLevel(level string) {
 	l.LogLevel = level
 }
 
-func (l *Log) do(t string, v ...interface{}) {
-	coloredLevel := l.getColoredLevel(t)
+func (l *Log) do(level int, v ...interface{}) {
+	if !l.shouldLog(level) {
+		return
+	}
+	coloredLevel := l.getColoredLevel(level)
 	vv := append([]interface{}{coloredLevel}, v...)
 	l.gl.Println(vv...)
 }
 
-func (l *Log) doF(t string, fmt string, v ...interface{}) {
-	coloredLevel := l.getColoredLevel(t)
+func (l *Log) doF(level int, fmt string, v ...interface{}) {
+	if !l.shouldLog(level) {
+		return
+	}
+	coloredLevel := l.getColoredLevel(level)
 	f := coloredLevel + " " + fmt
 	l.gl.Printf(f, v...)
 }
@@ -109,35 +129,52 @@ func (l *Log) Printf(format string, args ...interface{}) {
 }
 
 func (l *Log) Info(v ...interface{}) {
-	l.do(INFO, v...)
+	l.do(InfoLevel, v...)
 }
 
 func (l *Log) InfoF(format string, args ...interface{}) {
-	l.doF(INFO, format, args...)
+	l.doF(InfoLevel, format, args...)
 }
 
 func (l *Log) Error(v ...interface{}) {
-	l.do(ERROR, v...)
+	l.do(ErrorLevel, v...)
 }
 
 func (l *Log) ErrorF(format string, args ...interface{}) {
-	l.doF(ERROR, format, args...)
+	l.doF(ErrorLevel, format, args...)
 }
 
 func (l *Log) Warn(v ...interface{}) {
-	l.do(WARN, v...)
+	l.do(WarnLevel, v...)
 }
 
 func (l *Log) WarnF(format string, args ...interface{}) {
-	l.doF(WARN, format, args...)
+	l.doF(WarnLevel, format, args...)
 }
 
 func (l *Log) Debug(v ...interface{}) {
-	l.do(DEBUG, v...)
+	l.do(DebugLevel, v...)
 }
 
 func (l *Log) DebugF(format string, args ...interface{}) {
-	l.doF(DEBUG, format, args...)
+	l.doF(DebugLevel, format, args...)
+}
+
+func (l *Log) shouldLog(level int) bool {
+	var myLevel int
+	switch l.LogLevel {
+	case "debug":
+		myLevel = DebugLevel
+	case "info":
+		myLevel = InfoLevel
+	case "warn":
+		myLevel = WarnLevel
+	case "error":
+		myLevel = ErrorLevel
+	default:
+		myLevel = InfoLevel
+	}
+	return myLevel >= level
 }
 
 func Println(v ...interface{}) {
