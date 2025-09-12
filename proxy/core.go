@@ -98,10 +98,10 @@ func newProxy() *httputil.ReverseProxy {
 				cache.Cache(http.StatusForbidden, writer, request, cache.Forbidden)
 				return
 			case serror.SandwichBackendError:
+				breaker.Set(request.Host)
 				log.Debug("backend: service is down")
 				cache.Cache(http.StatusBadGateway, writer, request, cache.Unavailable)
 			}
-			breaker.Set(request.Host)
 			log.ErrorF("proxy connect error: %s\n", err.Error())
 			cache.Cache(http.StatusBadGateway, writer, request, cache.Unavailable)
 		},

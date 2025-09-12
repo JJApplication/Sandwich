@@ -6,6 +6,7 @@ Copyright Renj
 */
 
 // Package breaker
+// 自动熔断器
 package breaker
 
 import (
