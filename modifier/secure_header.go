@@ -1,0 +1,40 @@
+package modifier
+
+import (
+	"net/http"
+	"sandwich/config"
+	"sandwich/utils"
+)
+
+type SecureHeaderModifier struct {
+	enable bool
+}
+
+func NewSecureHeaderModifier() *SecureHeaderModifier {
+	cfg := config.Get()
+	mod := new(SecureHeaderModifier)
+	mod.enable = cfg.Features.SecureHeader
+	return mod
+}
+
+func (s SecureHeaderModifier) Use(response *http.Response) {
+	utils.AddSecureHeader(response)
+}
+
+func (s SecureHeaderModifier) ModifyResponse(response *http.Response) error {
+	s.Use(response)
+	return nil
+}
+
+func (s SecureHeaderModifier) IsEnabled() bool {
+	return s.enable
+}
+
+func (s SecureHeaderModifier) UpdateConfig() {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (s SecureHeaderModifier) GetName() string {
+	return "secure-header"
+}

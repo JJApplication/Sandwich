@@ -1,0 +1,43 @@
+package modifier
+
+import (
+	"net/http"
+	"sandwich/config"
+	"sandwich/utils"
+)
+
+type TraceModifier struct {
+	enable bool
+	header string
+}
+
+func NewTraceModifier() *TraceModifier {
+	cfg := config.Get()
+
+	mod := new(TraceModifier)
+	mod.enable = cfg.Features.Trace.Enabled
+	mod.header = cfg.Features.Trace.TraceId
+	return mod
+}
+
+func (t TraceModifier) Use(response *http.Response) {
+	utils.AddTrace(response, t.header)
+}
+
+func (t TraceModifier) ModifyResponse(response *http.Response) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (t TraceModifier) IsEnabled() bool {
+	return t.enable
+}
+
+func (t TraceModifier) UpdateConfig() {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (t TraceModifier) GetName() string {
+	return "trace-id"
+}

@@ -13,8 +13,8 @@ import (
 	"sandwich/config"
 	"sandwich/constant"
 	"sandwich/log"
+	"sandwich/modifier"
 	"sandwich/serror"
-	"sandwich/utils"
 	"sync"
 	"time"
 )
@@ -74,10 +74,16 @@ func newProxy() *httputil.ReverseProxy {
 		ErrorLog:      nil,
 		BufferPool:    nil,
 		ModifyResponse: func(response *http.Response) error {
-			NoCache(response)
-			utils.AddHeader(response)
-			utils.AddTrace(response)
-			utils.AddSecureHeader(response)
+			// add trace
+			modifier.NewTraceModifier().Use(response)
+			// add secure header
+			modifier.NewSecureHeaderModifier().Use(response)
+			// no cache
+			modifier.NewNoCache().Use(response)
+			// custom header
+			modifier.NewCustomHeaderModifier().Use(response)
+			// 应用gzip压缩中间件
+			modifier.NewGzipModifier().Use(response)
 			return nil
 		},
 		ErrorHandler: func(writer http.ResponseWriter, request *http.Request, err error) {

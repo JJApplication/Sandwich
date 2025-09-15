@@ -12,8 +12,7 @@ import (
 
 // 自定义的响应头部
 
-func AddHeader(response *http.Response) {
-	headers := config.Get().CustomHeader
+func AddHeader(response *http.Response, headers map[string]string) {
 	for key, value := range headers {
 		if response.Header.Get(key) == "" {
 			response.Header.Add(key, value)
@@ -21,9 +20,12 @@ func AddHeader(response *http.Response) {
 	}
 }
 
-func AddTrace(response *http.Response) {
+func AddTrace(response *http.Response, traceHeader string) {
 	// 设置请求的Trace-Id
 	traceIdHeader := config.Get().ProxyHeader.TraceId
+	if traceIdHeader == "" {
+		traceIdHeader = traceHeader
+	}
 	traceId := response.Request.Header.Get(traceIdHeader)
 
 	// 仅当traceID不存在时才生成并设置新的TraceID

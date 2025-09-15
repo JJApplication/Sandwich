@@ -166,10 +166,12 @@ func (m *MiddlewareConfig) GetBool(key string) bool {
 
 // FeatureConfig 功能特性配置结构体
 type FeatureConfig struct {
-	HTTP3     HTTP3Config     `yaml:"http3" json:"http3"`         // HTTP/3配置
-	WebSocket WebSocketConfig `yaml:"websocket" json:"websocket"` // WebSocket配置
-	Gzip      GzipConfig      `yaml:"gzip" json:"gzip"`           // Gzip压缩配置
-	Cache     CacheConfig     `yaml:"cache" json:"cache"`         // 缓存配置
+	HTTP3        HTTP3Config     `yaml:"http3" json:"http3"`                 // HTTP/3配置
+	WebSocket    WebSocketConfig `yaml:"websocket" json:"websocket"`         // WebSocket配置
+	Gzip         GzipConfig      `yaml:"gzip" json:"gzip"`                   // Gzip压缩配置
+	Cache        CacheConfig     `yaml:"cache" json:"cache"`                 // 缓存配置
+	SecureHeader bool            `yaml:"secure_header" json:"secure_header"` // 安全响应头
+	Trace        TraceConfig     `yaml:"trace" json:"trace"`                 // 请求跟踪
 }
 
 // HTTP3Config HTTP/3协议配置结构体
@@ -202,6 +204,11 @@ type CacheConfig struct {
 	Size     int    `yaml:"size" json:"size"`         // 缓存大小
 	TTL      int    `yaml:"ttl" json:"ttl"`           // 缓存过期时间
 	Strategy string `yaml:"strategy" json:"strategy"` // 缓存策略: lru, lfu, fifo
+}
+
+type TraceConfig struct {
+	Enabled bool   `yaml:"enabled" json:"enabled"`
+	TraceId string `yaml:"trace_id" json:"trace_id"`
 }
 
 // DatabaseConfig 数据库配置结构体
