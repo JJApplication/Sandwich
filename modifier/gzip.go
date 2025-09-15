@@ -85,7 +85,7 @@ func (g *GzipModifier) ModifyResponse(response *http.Response) error {
 	// 读取原始响应体
 	originalBody, err := io.ReadAll(response.Body)
 	if err != nil {
-		log.ErrorF("读取响应体失败: %s", err.Error())
+		log.DebugF("读取响应体失败: %s", err.Error())
 		return err
 	}
 	response.Body.Close()
@@ -99,7 +99,7 @@ func (g *GzipModifier) ModifyResponse(response *http.Response) error {
 	// 压缩响应体
 	compressedBody, err := g.compressData(originalBody)
 	if err != nil {
-		log.ErrorF("gzip压缩失败: %s", err.Error())
+		log.DebugF("gzip压缩失败: %s", err.Error())
 		// 压缩失败时返回原始响应
 		response.Body = io.NopCloser(bytes.NewReader(originalBody))
 		return nil

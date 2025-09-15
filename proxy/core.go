@@ -55,6 +55,7 @@ func getOptimizedTransport() *http.Transport {
 // http转发
 func newProxy() *httputil.ReverseProxy {
 	cfg := config.Get()
+	mods := modifier.GetManager().GetModifiers()
 
 	proxy := &httputil.ReverseProxy{
 		Director: func(request *http.Request) {
@@ -74,16 +75,9 @@ func newProxy() *httputil.ReverseProxy {
 		ErrorLog:      nil,
 		BufferPool:    nil,
 		ModifyResponse: func(response *http.Response) error {
-			// add trace
-			modifier.NewTraceModifier().Use(response)
-			// add secure header
-			modifier.NewSecureHeaderModifier().Use(response)
-			// no cache
-			modifier.NewNoCache().Use(response)
-			// custom header
-			modifier.NewCustomHeaderModifier().Use(response)
-			// 应用gzip压缩中间件
-			modifier.NewGzipModifier().Use(response)
+			for _, mod := range mods {
+				mod.Use(response)
+			}
 			return nil
 		},
 		ErrorHandler: func(writer http.ResponseWriter, request *http.Request, err error) {

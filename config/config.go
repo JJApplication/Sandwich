@@ -166,10 +166,11 @@ func (m *MiddlewareConfig) GetBool(key string) bool {
 
 // FeatureConfig 功能特性配置结构体
 type FeatureConfig struct {
-	HTTP3        HTTP3Config     `yaml:"http3" json:"http3"`                 // HTTP/3配置
-	WebSocket    WebSocketConfig `yaml:"websocket" json:"websocket"`         // WebSocket配置
-	Gzip         GzipConfig      `yaml:"gzip" json:"gzip"`                   // Gzip压缩配置
-	Cache        CacheConfig     `yaml:"cache" json:"cache"`                 // 缓存配置
+	HTTP3        HTTP3Config     `yaml:"http3" json:"http3"`         // HTTP/3配置
+	WebSocket    WebSocketConfig `yaml:"websocket" json:"websocket"` // WebSocket配置
+	Cache        CacheConfig     `yaml:"cache" json:"cache"`         // 缓存配置
+	Gzip         GzipConfig      `yaml:"gzip" json:"gzip"`           // Gzip压缩配置
+	NoCache      bool            `yaml:"no_cache" json:"no_cache"`
 	SecureHeader bool            `yaml:"secure_header" json:"secure_header"` // 安全响应头
 	Trace        TraceConfig     `yaml:"trace" json:"trace"`                 // 请求跟踪
 }

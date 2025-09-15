@@ -10,18 +10,39 @@ package modifier
 import (
 	"net/http"
 	"sandwich/log"
+	"sync"
 )
 
 // ModifierManager 修改器管理器
 // 负责管理和协调所有响应修改器
 type ModifierManager struct {
-	chain *ModifierChain
+	lock      *sync.RWMutex
+	chain     *ModifierChain
+	modifiers []Modifier
+}
+
+var (
+	m *ModifierManager
+)
+
+func init() {
+	m = NewModifierManager()
+	m.InitModifiers()
+}
+
+func GetManager() *ModifierManager {
+	if m != nil {
+		return m
+	}
+	return new(ModifierManager)
 }
 
 // NewModifierManager 创建新的修改器管理器
 func NewModifierManager() *ModifierManager {
 	manager := &ModifierManager{
-		chain: NewModifierChain(),
+		lock:      new(sync.RWMutex),
+		chain:     NewModifierChain(),
+		modifiers: make([]Modifier, 0),
 	}
 
 	// 注册默认的修改器
@@ -41,6 +62,25 @@ func (mm *ModifierManager) registerDefaultModifiers() {
 	customHeaderModifier := NewCustomHeaderModifier()
 	mm.chain.AddModifier(customHeaderModifier)
 	log.DebugF("已注册修改器: %s", customHeaderModifier.GetName())
+}
+
+func (mm *ModifierManager) InitModifiers() {
+	// add trace
+	mm.RegisterModifier(NewTraceModifier())
+	// add secure header
+	mm.RegisterModifier(NewSecureHeaderModifier())
+	// no cache
+	mm.RegisterModifier(NewNoCache())
+	// custom header
+	mm.RegisterModifier(NewCustomHeaderModifier())
+	// 应用gzip压缩中间件
+	mm.RegisterModifier(NewGzipModifier())
+}
+
+func (mm *ModifierManager) RegisterModifier(modifier Modifier) {
+	mm.lock.Lock()
+	defer mm.lock.Unlock()
+	mm.modifiers = append(mm.modifiers, modifier)
 }
 
 // ModifyResponse 对响应应用所有启用的修改器
@@ -119,4 +159,10 @@ func (mm *ModifierManager) GetStatus() map[string]interface{} {
 	}
 
 	return status
+}
+
+func (mm *ModifierManager) GetModifiers() []Modifier {
+	mm.lock.RLock()
+	defer mm.lock.RUnlock()
+	return mm.modifiers
 }

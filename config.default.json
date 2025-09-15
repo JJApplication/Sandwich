@@ -75,6 +75,11 @@
       "size": 1000,
       "ttl": 60,
       "strategy": "lru"
+    },
+    "secure_header": false,
+    "trace": {
+      "enabled": false,
+      "trace_id": ""
     }
   },
   "database": {
@@ -101,6 +106,9 @@
   },
   "security": {
     "strict_mode": false,
+    "hsts": false,
+    "hsts_subdomain": false,
+    "hsts_preload": false,
     "allow_ips": [],
     "deny_ips": [],
     "rate_limit": 1000

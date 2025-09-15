@@ -21,6 +21,9 @@ func NewTraceModifier() *TraceModifier {
 }
 
 func (t TraceModifier) Use(response *http.Response) {
+	if !t.enable {
+		return
+	}
 	utils.AddTrace(response, t.header)
 }
 

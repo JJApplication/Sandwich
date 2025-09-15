@@ -103,6 +103,9 @@ func (cv *ConfigValidator) validateServers(servers []ServerConfig, result *Valid
 	portProtocolMap := make(map[string]string) // port:protocol -> server_name
 
 	for i, server := range servers {
+		if !server.Enabled {
+			continue
+		}
 		prefix := fmt.Sprintf("servers[%d]", i)
 
 		// 验证服务器名称

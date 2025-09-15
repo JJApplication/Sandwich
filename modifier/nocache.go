@@ -2,6 +2,7 @@ package modifier
 
 import (
 	"net/http"
+	"sandwich/config"
 	"sandwich/constant"
 	"sandwich/utils"
 )
@@ -11,11 +12,16 @@ type NoCache struct {
 }
 
 func NewNoCache() *NoCache {
+	cfg := config.Get()
 	mod := new(NoCache)
+	mod.enabled = cfg.Features.NoCache
 	return mod
 }
 
 func (n NoCache) Use(response *http.Response) {
+	if !n.enabled {
+		return
+	}
 	// 首先判断请求头中的cache
 	cacheHeader := response.Header.Get("Cache-Control")
 	if cacheHeader != "" {

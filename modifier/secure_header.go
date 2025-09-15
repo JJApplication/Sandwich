@@ -18,11 +18,14 @@ func NewSecureHeaderModifier() *SecureHeaderModifier {
 }
 
 func (s SecureHeaderModifier) Use(response *http.Response) {
-	utils.AddSecureHeader(response)
+	_ = s.ModifyResponse(response)
 }
 
 func (s SecureHeaderModifier) ModifyResponse(response *http.Response) error {
-	s.Use(response)
+	if !s.enable {
+		return nil
+	}
+	utils.AddSecureHeader(response)
 	return nil
 }
 

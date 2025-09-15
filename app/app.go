@@ -306,6 +306,7 @@ func (app *Application) printStartupInfo() {
 	//}
 
 	app.logger.Printf("========================================")
+	printModifiers(&app.config.Features)
 }
 
 // Stop 停止应用程序
