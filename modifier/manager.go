@@ -27,7 +27,6 @@ var (
 
 func init() {
 	m = NewModifierManager()
-	m.InitModifiers()
 }
 
 func GetManager() *ModifierManager {
@@ -51,6 +50,19 @@ func NewModifierManager() *ModifierManager {
 	return manager
 }
 
+func InitModifiers() {
+	// add trace
+	m.RegisterModifier(NewTraceModifier())
+	// add secure header
+	m.RegisterModifier(NewSecureHeaderModifier())
+	// no cache
+	m.RegisterModifier(NewNoCache())
+	// custom header
+	m.RegisterModifier(NewCustomHeaderModifier())
+	// 应用gzip压缩中间件
+	m.RegisterModifier(NewGzipModifier())
+}
+
 // registerDefaultModifiers 注册默认的修改器
 func (mm *ModifierManager) registerDefaultModifiers() {
 	// 注册gzip压缩修改器
@@ -62,19 +74,6 @@ func (mm *ModifierManager) registerDefaultModifiers() {
 	customHeaderModifier := NewCustomHeaderModifier()
 	mm.chain.AddModifier(customHeaderModifier)
 	log.DebugF("已注册修改器: %s", customHeaderModifier.GetName())
-}
-
-func (mm *ModifierManager) InitModifiers() {
-	// add trace
-	mm.RegisterModifier(NewTraceModifier())
-	// add secure header
-	mm.RegisterModifier(NewSecureHeaderModifier())
-	// no cache
-	mm.RegisterModifier(NewNoCache())
-	// custom header
-	mm.RegisterModifier(NewCustomHeaderModifier())
-	// 应用gzip压缩中间件
-	mm.RegisterModifier(NewGzipModifier())
 }
 
 func (mm *ModifierManager) RegisterModifier(modifier Modifier) {

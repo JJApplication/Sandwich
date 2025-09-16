@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"sandwich/config"
 	"sandwich/log"
+	"sandwich/modifier"
 	"sandwich/protocols/http3"
 	"sandwich/protocols/websocket"
 	"sandwich/proxy"
@@ -120,6 +121,8 @@ func (app *Application) loadConfig(configPath string) error {
 
 // initializeComponents 初始化组件
 func (app *Application) initializeComponents() error {
+	// 初始化特性组件
+	modifier.InitModifiers()
 	// 创建原始代理处理器（复用现有的 proxy.go 逻辑）
 	proxyHandler := app.createProxyHandler()
 
