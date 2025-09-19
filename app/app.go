@@ -14,6 +14,7 @@ import (
 	"sandwich/protocols/websocket"
 	"sandwich/proxy"
 	"sandwich/server"
+	"sandwich/stat"
 	"sandwich/utils"
 	"strings"
 )
@@ -145,6 +146,12 @@ func (app *Application) initializeComponents() error {
 		if err := app.wsServer.Start(); err != nil {
 			return fmt.Errorf("启动 WebSocket 服务器失败: %v", err)
 		}
+	}
+
+	// 初始化状态服务器
+	statServer := stat.NewStatServer(app.config.Stat, app.logger)
+	if err := statServer.Start(); err != nil {
+		return fmt.Errorf("启动 状态统计服务器失败: %v", err)
 	}
 
 	return nil

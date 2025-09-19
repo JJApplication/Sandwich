@@ -23,7 +23,9 @@
     "doc.renj.io",
     "x.renj.io",
     "pkg.renj.io",
-    "jjapp.renj.io"
+    "jjapp.renj.io",
+    "status.renj.io",
+    "stat.renj.io"
   ],
   "domainMap": {
     "renj.io": {
@@ -95,6 +97,13 @@
     },
     "jjapp.renj.io": {
       "frontend": "JJAppDev"
+    },
+    "status.renj.io": {
+      "backend": "Status"
+    },
+    "stat.renj.io": {
+      "frontend": "Taco",
+      "backend": "Taco"
     }
   }
 }

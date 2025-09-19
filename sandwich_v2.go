@@ -14,6 +14,7 @@ import (
 	"sandwich/data"
 	"sandwich/flow"
 	"sandwich/jobs"
+	"sandwich/stat"
 	"syscall"
 	"time"
 
@@ -95,6 +96,9 @@ func main() {
 
 	// start sync jobs
 	jobs.InitSyncJobs()
+
+	// init stat syncer
+	stat.InitStatSyncer()
 
 	// init worker
 	breaker.InitBreaker()

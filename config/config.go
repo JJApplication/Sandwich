@@ -26,6 +26,8 @@ type Config struct {
 	FrontProxy   FrontProxyConfig   `yaml:"front_proxy" json:"front_proxy"`     // 前端代理配置
 	ProxyHeader  ProxyHeader        `yaml:"proxy_header" json:"proxy_header"`   // 内置的代理头配置
 	Log          LogConfig          `yaml:"log" json:"log"`                     // 日志配置
+	Module       []ModuleConfig     `yaml:"module" json:"module"`               // 模块
+	Stat         StatConfig         `yaml:"stat" json:"stat"`                   // 状态配置
 	CustomHeader map[string]string  `yaml:"custom_header" json:"custom_header"` // 自定义Header
 	DomainMap    string             `yaml:"domain_map" json:"domain_map"`       // 域名映射文件
 	JobSyncTime  int                `yaml:"job_sync_time" json:"job_sync_time"` // 同步时间
@@ -273,6 +275,21 @@ type LogConfig struct {
 	LogLevel string `yaml:"log_level" json:"log_level"`
 	LogFile  string `yaml:"log_file" json:"log_file"`
 	Color    bool   `yaml:"color" json:"color"`
+}
+
+type ModuleConfig struct {
+	Name string `yaml:"name" json:"name"`
+	Path string `yaml:"path" json:"path"`
+	Type string `yaml:"type" json:"type"` // mod | pre 可选 会根据Lookup自动匹配
+}
+
+type StatConfig struct {
+	Enabled      bool   `yaml:"enabled" json:"enabled"`
+	Host         string `yaml:"host" json:"host"`
+	Port         int    `yaml:"port" json:"port"`
+	SyncDuration int    `yaml:"sync_duration" json:"sync_duration"`
+	SaveDuration int    `yaml:"save_duration" json:"save_duration"`
+	SaveFile     string `json:"save_file"`
 }
 
 // GetDefaultConfig 获取默认配置

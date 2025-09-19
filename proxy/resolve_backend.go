@@ -16,6 +16,7 @@ import (
 	"sandwich/data"
 	"sandwich/log"
 	"sandwich/serror"
+	"sandwich/stat"
 )
 
 // 后端服务的API转发
@@ -60,5 +61,6 @@ func resolveBackend(req *http.Request, fromConf bool) *url.URL {
 	if req.URL == nil {
 		req.Header.Set(serror.SandwichInternalFlag, serror.SandwichBackendError)
 	}
+	stat.Add(stat.API)
 	return req.URL
 }

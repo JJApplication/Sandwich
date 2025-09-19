@@ -6,6 +6,7 @@ toolchain go1.24.4
 
 require (
 	github.com/JJApplication/octopus_meta v1.0.1
+	github.com/allegro/bigcache/v3 v3.1.0
 	github.com/fatih/color v1.18.0
 	github.com/gookit/goutil v0.5.5
 	github.com/gorilla/websocket v1.5.3

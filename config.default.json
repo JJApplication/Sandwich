@@ -60,6 +60,12 @@
       "max_message_size": 1048576,
       "buffer_size": 1024
     },
+    "cache": {
+      "enabled": true,
+      "size": 1000,
+      "ttl": 60,
+      "strategy": "lru"
+    },
     "gzip": {
       "enabled": true,
       "level": 6,
@@ -70,12 +76,7 @@
         "application/json"
       ]
     },
-    "cache": {
-      "enabled": true,
-      "size": 1000,
-      "ttl": 60,
-      "strategy": "lru"
-    },
+    "no_cache": false,
     "secure_header": false,
     "trace": {
       "enabled": false,
@@ -190,6 +191,15 @@
     "log_level": "",
     "log_file": "",
     "color": false
+  },
+  "module": null,
+  "stat": {
+    "enabled": false,
+    "host": "127.0.0.1",
+    "port": 8888,
+    "sync_duration": 5,
+    "save_duration": 1,
+    "save_file": "stat.json"
   },
   "custom_header": {
     "Proxy-Copyright": "renj.io",

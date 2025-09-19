@@ -15,6 +15,7 @@ import (
 	"sandwich/log"
 	"sandwich/modifier"
 	"sandwich/serror"
+	"sandwich/stat"
 	"sync"
 	"time"
 )
@@ -62,6 +63,7 @@ func newProxy() *httputil.ReverseProxy {
 			log.DebugF("parse request Header: %#v\n", request.Header)
 			log.DebugF("parse request Host: %#v\n", request.Host)
 			log.DebugF("parse request Trace-Id: %s\n", request.Header.Get(cfg.ProxyHeader.TraceId))
+			stat.Add(stat.Total)
 			if !cache.ValidateDomain(request) {
 				request.Header.Set(serror.SandwichInternalFlag, serror.SandwichDomainNotAllow)
 				request.URL = &url.URL{Scheme: constant.Sandwich}
@@ -83,6 +85,7 @@ func newProxy() *httputil.ReverseProxy {
 		ErrorHandler: func(writer http.ResponseWriter, request *http.Request, err error) {
 			log.DebugF("host: %s, url: %#v, proto: %s, method: %s\n",
 				request.Host, request.URL, request.Proto, request.Method)
+			stat.Add(stat.Fail)
 			// 熔断判断
 			switch request.Header.Get(serror.SandwichInternalFlag) {
 			case serror.SandwichBucketLimit:

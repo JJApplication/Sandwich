@@ -15,6 +15,7 @@ import (
 	"sandwich/config"
 	"sandwich/data"
 	"sandwich/log"
+	"sandwich/stat"
 	"strings"
 )
 
@@ -43,6 +44,7 @@ func resolveFrontend(req *http.Request) *url.URL {
 		// 转发请求必须携带实际HOST信息
 		req.Header.Set(config.Get().ProxyHeader.FrontendHostHeader, host)
 		log.InfoF("frontend -> [%s] : [%d]\n", app, config.Get().FrontProxy.FrontendPort)
+		stat.Add(stat.Static)
 		return req.URL
 	}
 	log.ErrorF("domain resolved failed: [%s]\n", host)
