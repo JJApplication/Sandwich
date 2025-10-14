@@ -173,6 +173,14 @@
     "Proxy-Copyright": "renj.io",
     "Proxy-Server": "Sandwich"
   },
+  "stat": {
+    "enabled": true,
+    "host": "0.0.0.0",
+    "port": 8888,
+    "sync_duration": 3600,
+    "save_duration": 7200,
+    "save_file": "stat.json"
+  },
   "debug": false,
   "domain_map": "domain.json",
   "job_sync_time": 15,

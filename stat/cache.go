@@ -41,4 +41,6 @@ func initCacheFromFile() {
 		atomic.StoreInt64(&fail, m["fail"])
 		atomic.StoreInt64(&today, m["today"])
 	}
+	// 立即初始化一次
+	go syncStat()
 }
