@@ -32,6 +32,10 @@ type Config struct {
 	DomainMap    string             `yaml:"domain_map" json:"domain_map"`       // 域名映射文件
 	JobSyncTime  int                `yaml:"job_sync_time" json:"job_sync_time"` // 同步时间
 	Debug        bool               `yaml:"debug" json:"debug"`                 // 调试模式
+	PProf        struct {
+		Enable bool `yaml:"enable" json:"enable"`
+		Port   int  `yaml:"port" json:"port"`
+	} `yaml:"pprof" json:"pprof"`
 }
 
 // ServerConfig 服务器配置结构体

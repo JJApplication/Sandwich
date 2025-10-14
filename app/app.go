@@ -10,6 +10,7 @@ import (
 	"sandwich/config"
 	"sandwich/log"
 	"sandwich/modifier"
+	"sandwich/pprof"
 	"sandwich/protocols/http3"
 	"sandwich/protocols/websocket"
 	"sandwich/proxy"
@@ -153,6 +154,9 @@ func (app *Application) initializeComponents() error {
 	if err := statServer.Start(); err != nil {
 		return fmt.Errorf("启动 状态统计服务器失败: %v", err)
 	}
+
+	// pprof
+	pprof.InitPProf(app.config.PProf)
 
 	return nil
 }
