@@ -16,7 +16,7 @@ func InitStatSyncer() {
 
 	sdu := cfg.Stat.SaveDuration
 	if sdu == 0 {
-		sdu = 60
+		sdu = 3600
 	}
 
 	go func() {
@@ -25,15 +25,17 @@ func InitStatSyncer() {
 		for range ticker.C {
 			log.Info("running stat syncer")
 			go syncStat()
+			go syncGEOStat()
 		}
 	}()
 
 	go func() {
-		ticker := time.NewTicker(time.Minute * time.Duration(sdu))
+		ticker := time.NewTicker(time.Second * time.Duration(sdu))
 		defer ticker.Stop()
 		for range ticker.C {
 			log.Info("save stat to file")
 			go SaveStat(cfg.Stat.SaveFile)
+			go SaveGeoStat()
 		}
 	}()
 }

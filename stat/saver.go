@@ -10,7 +10,8 @@ import (
 // 持久化存储数据到文件
 
 var (
-	lock = sync.RWMutex{}
+	lock    = sync.RWMutex{}
+	geoLock = sync.RWMutex{}
 )
 
 func LoadStat() map[string]int64 {

@@ -29,6 +29,7 @@ type Config struct {
 	Module       []ModuleConfig     `yaml:"module" json:"module"`               // 模块
 	Stat         StatConfig         `yaml:"stat" json:"stat"`                   // 状态配置
 	CustomHeader map[string]string  `yaml:"custom_header" json:"custom_header"` // 自定义Header
+	ImageProtect ImageProtect       `yaml:"image_protect" json:"image_protect"` // 图片防盗链
 	DomainMap    string             `yaml:"domain_map" json:"domain_map"`       // 域名映射文件
 	JobSyncTime  int                `yaml:"job_sync_time" json:"job_sync_time"` // 同步时间
 	Debug        bool               `yaml:"debug" json:"debug"`                 // 调试模式
@@ -294,6 +295,13 @@ type StatConfig struct {
 	SyncDuration int    `yaml:"sync_duration" json:"sync_duration"`
 	SaveDuration int    `yaml:"save_duration" json:"save_duration"`
 	SaveFile     string `json:"save_file"`
+	GeoFile      string `json:"geo_file"`
+	GeoDB        string `json:"geo_db"` // geo数据库
+}
+
+type ImageProtect struct {
+	ImageType    []string `yaml:"image_type" json:"image_type"`       // 过滤的图片类型
+	AllowReferer []string `yaml:"allow_referer" json:"allow_referer"` // 允许的请求头
 }
 
 // GetDefaultConfig 获取默认配置

@@ -14,6 +14,7 @@ import (
 	"sandwich/constant"
 	"sandwich/log"
 	"sandwich/modifier"
+	"sandwich/prehandler"
 	"sandwich/serror"
 	"sandwich/stat"
 	"sync"
@@ -64,7 +65,8 @@ func newProxy() *httputil.ReverseProxy {
 			log.DebugF("parse request Host: %#v\n", request.Host)
 			log.DebugF("parse request Trace-Id: %s\n", request.Header.Get(cfg.ProxyHeader.TraceId))
 			stat.Add(stat.Total)
-			if !cache.ValidateDomain(request) {
+			stat.AddGeo(request.RemoteAddr)
+			if !prehandler.ValidateDomain(request) {
 				request.Header.Set(serror.SandwichInternalFlag, serror.SandwichDomainNotAllow)
 				request.URL = &url.URL{Scheme: constant.Sandwich}
 				return

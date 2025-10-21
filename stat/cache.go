@@ -14,6 +14,9 @@ var (
 	static int64
 	fail   int64
 	today  int64
+
+	// geo数据
+	geoIp map[string]*int64 // 地区请求
 )
 
 func C() *bigcache.BigCache {
@@ -43,4 +46,12 @@ func initCacheFromFile() {
 	}
 	// 立即初始化一次
 	go syncStat()
+
+	geo := LoadGeoStat()
+	geoIp = make(map[string]*int64)
+	if geo != nil {
+		for k, v := range geo {
+			geoIp[k] = &v
+		}
+	}
 }

@@ -13,6 +13,7 @@ import (
 	"sandwich/connector"
 	"sandwich/data"
 	"sandwich/flow"
+	"sandwich/geo"
 	"sandwich/jobs"
 	"sandwich/stat"
 	"syscall"
@@ -97,6 +98,9 @@ func main() {
 	// start sync jobs
 	jobs.InitSyncJobs()
 
+	// init geo db
+	geo.LoadGEO()
+
 	// init stat syncer
 	stat.InitStatSyncer()
 
@@ -119,7 +123,7 @@ func main() {
 	log.Printf("收到信号: %v，正在优雅关闭...", sig)
 
 	// 创建关闭超时上下文
-	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 30*time.Second)
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer shutdownCancel()
 
 	// 在 goroutine 中执行关闭操作

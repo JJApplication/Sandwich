@@ -29,6 +29,7 @@ type Application struct {
 	router        *server.Router       // 路由器
 	http3Server   *http3.Server        // HTTP/3 服务器
 	wsServer      *websocket.Server    // WebSocket 服务器
+	statServer    *stat.StatServer     // 状态统计服务器
 	logger        *log.Log             // 日志记录器
 	ctx           context.Context      // 应用上下文
 	cancel        context.CancelFunc   // 取消函数
@@ -151,6 +152,7 @@ func (app *Application) initializeComponents() error {
 
 	// 初始化状态服务器
 	statServer := stat.NewStatServer(app.config.Stat, app.logger)
+	app.statServer = statServer
 	if err := statServer.Start(); err != nil {
 		return fmt.Errorf("启动 状态统计服务器失败: %v", err)
 	}
@@ -350,6 +352,13 @@ func (app *Application) Stop() error {
 	if app.serverManager != nil {
 		if err := app.serverManager.Stop(); err != nil {
 			app.logger.Printf("停止服务器管理器失败: %v", err)
+		}
+	}
+
+	// 停止状态统计服务器
+	if app.statServer != nil {
+		if err := app.statServer.Start(); err != nil {
+			app.logger.Printf("停止状态服务器失败: %v", err)
 		}
 	}
 

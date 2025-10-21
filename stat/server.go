@@ -1,6 +1,7 @@
 package stat
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -46,6 +47,13 @@ func (s *StatServer) Start() error {
 	return nil
 }
 
+func (s *StatServer) Stop() error {
+	if !s.Enabled {
+		return nil
+	}
+	return s.server.Shutdown(context.Background())
+}
+
 func newServer(host string, port int) *http.Server {
 	svr := &http.Server{
 		Addr: fmt.Sprintf("%s:%d", host, port),
@@ -75,5 +83,13 @@ func registerMux(mux *http.ServeMux) {
 			return
 		}
 		w.Write(data)
+	})
+
+	mux.HandleFunc("/api/geo", func(w http.ResponseWriter, r *http.Request) {
+		result := GetGeoData()
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+		w.Write(result)
 	})
 }

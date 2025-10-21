@@ -170,7 +170,7 @@ func (m *Manager) startServer(serverConfig config.ServerConfig) error {
 		originalHandler := instance.Server.Handler
 		instance.Server.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// 内部请求不需要判断重定向
-			
+
 			// 检查是否需要自动重定向HTTP到HTTPS
 			if r.Header.Get(m.config.ProxyHeader.BackendHeader) == "" && serverConfig.Protocol == "http" {
 				// 添加调试日志
@@ -187,7 +187,7 @@ func (m *Manager) startServer(serverConfig config.ServerConfig) error {
 
 				// 查找匹配的域名配置
 				for i, domainConfig := range serverConfig.DomainConfig {
-					m.logger.InfoF("检查域名配置 %d: AutoRedirect=%v, Domains=%v", i, domainConfig.AutoRedirect, domainConfig.Domains)
+					m.logger.DebugF("检查域名配置 %d: AutoRedirect=%v, Domains=%v", i, domainConfig.AutoRedirect, domainConfig.Domains)
 
 					if domainConfig.AutoRedirect {
 						// 检查当前域名是否在配置的域名列表中

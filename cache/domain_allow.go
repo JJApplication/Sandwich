@@ -8,10 +8,7 @@
 package cache
 
 import (
-	"net/http"
-	"sandwich/config"
 	"sandwich/log"
-	"strings"
 	"sync"
 )
 
@@ -45,17 +42,4 @@ func loadDomainAllowList(domainData *DomainMap) map[string]struct{} {
 	}
 
 	return tmp
-}
-
-// ValidateDomain 校验域名是否绑定
-// 内部请求无需校验
-func ValidateDomain(req *http.Request) bool {
-	domain := req.Host
-	cf := config.Get()
-	if strings.HasPrefix(domain, "127.0.0.1") ||
-		req.Header.Get(cf.ProxyHeader.BackendHeader) != "" {
-		return true
-	}
-	_, ok := DomainAllowList[domain]
-	return ok
 }

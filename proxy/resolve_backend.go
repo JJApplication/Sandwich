@@ -32,14 +32,14 @@ func resolveBackend(req *http.Request, fromConf bool) *url.URL {
 	}
 
 	if app == "" {
-		log.Info("proxy -> None error: app is nil")
+		log.Debug("proxy -> None error: app is nil")
 		req.Header.Set(serror.SandwichInternalFlag, serror.SandwichBackendError)
 		return nil
 	}
 	// 获取后端服务对应的域名
 	proxyApp := cache.GetDomainByApp(app)
 	if proxyApp == "" {
-		log.ErrorF("proxy -> %s error: app domain is nil", app)
+		log.DebugF("proxy -> %s error: app domain is nil", app)
 		req.Header.Set(serror.SandwichInternalFlag, serror.SandwichBackendError)
 		return nil
 	}
@@ -47,7 +47,7 @@ func resolveBackend(req *http.Request, fromConf bool) *url.URL {
 	dst := data.DomainReflect(proxyApp)
 	if dst == nil || len(dst) == 0 {
 		data.AddInfluxData(req, data.StatNotFound)
-		log.ErrorF("domain reflect failed: [%s]\n", proxyApp)
+		log.DebugF("domain reflect failed: [%s]\n", proxyApp)
 		req.Header.Set(serror.SandwichInternalFlag, serror.SandwichBackendError)
 		return nil
 	}
@@ -56,7 +56,7 @@ func resolveBackend(req *http.Request, fromConf bool) *url.URL {
 	log.InfoF("request recv| %s |uri: %s|host: %s\n", req.Method, req.RequestURI, proxyApp)
 	req.URL.Scheme = "http"
 	req.URL.Host = balancer.PickOne(dst)
-	log.InfoF("backend -> [%s] : [%s]\n", app, req.URL.Host)
+	log.DebugF("backend -> [%s] : [%s]\n", app, req.URL.Host)
 
 	if req.URL == nil {
 		req.Header.Set(serror.SandwichInternalFlag, serror.SandwichBackendError)

@@ -179,7 +179,8 @@
     "port": 8888,
     "sync_duration": 3600,
     "save_duration": 7200,
-    "save_file": "stat.json"
+    "save_file": "stat.json",
+    "geo_file": "geo.json"
   },
   "debug": false,
   "domain_map": "domain.json",
