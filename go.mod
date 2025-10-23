@@ -11,6 +11,7 @@ require (
 	github.com/gookit/goutil v0.5.5
 	github.com/gorilla/websocket v1.5.3
 	github.com/influxdata/influxdb-client-go/v2 v2.10.0
+	github.com/json-iterator/go v1.1.12
 	github.com/kamva/mgm/v3 v3.4.1
 	github.com/olekukonko/tablewriter v1.0.9
 	github.com/oschwald/maxminddb-golang/v2 v2.0.0-beta.10
@@ -30,7 +31,6 @@ require (
 	github.com/gookit/validate v1.4.2 // indirect
 	github.com/influxdata/line-protocol v0.0.0-20200327222509-2487e7298839 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
-	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.9.5 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect

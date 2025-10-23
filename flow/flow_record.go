@@ -9,11 +9,11 @@ Copyright Renj
 package flow
 
 import (
-	"encoding/json"
 	"net/http"
 	"os"
 	"sandwich/config"
 	"sandwich/data"
+	"sandwich/json"
 	"sandwich/log"
 	"strings"
 	"sync"
@@ -45,18 +45,18 @@ type FlowRecorder struct {
 
 // FlowRecord 流量记录结构
 type FlowRecord struct {
-	Timestamp    time.Time `json:"timestamp"`    // 记录时间
-	Host         string    `json:"host"`         // 请求的Host
-	ClientIP     string    `json:"client_ip"`    // 客户端IP
-	UserAgent    string    `json:"user_agent"`   // User-Agent
-	URL          string    `json:"url"`          // 请求URL
-	Method       string    `json:"method"`       // HTTP方法
-	Status       string    `json:"status"`       // 状态: blocked, allowed
-	RuleName     string    `json:"rule_name"`    // 触发的规则名称
-	Reason       string    `json:"reason"`       // 限流原因
-	Headers      string    `json:"headers"`      // 重要的请求头（JSON格式）
-	Referer      string    `json:"referer"`      // 来源页面
-	RequestSize  int64     `json:"request_size"` // 请求大小
+	Timestamp   time.Time `json:"timestamp"`    // 记录时间
+	Host        string    `json:"host"`         // 请求的Host
+	ClientIP    string    `json:"client_ip"`    // 客户端IP
+	UserAgent   string    `json:"user_agent"`   // User-Agent
+	URL         string    `json:"url"`          // 请求URL
+	Method      string    `json:"method"`       // HTTP方法
+	Status      string    `json:"status"`       // 状态: blocked, allowed
+	RuleName    string    `json:"rule_name"`    // 触发的规则名称
+	Reason      string    `json:"reason"`       // 限流原因
+	Headers     string    `json:"headers"`      // 重要的请求头（JSON格式）
+	Referer     string    `json:"referer"`      // 来源页面
+	RequestSize int64     `json:"request_size"` // 请求大小
 }
 
 // NewFlowRecorder 创建流量记录器
@@ -106,12 +106,12 @@ func (fr *FlowRecorder) createRecord(req *http.Request, status, ruleName, reason
 
 	// 获取重要的请求头
 	importantHeaders := map[string]string{
-		"User-Agent":       req.Header.Get("User-Agent"),
-		"X-Forwarded-For":  req.Header.Get("X-Forwarded-For"),
-		"X-Real-IP":        req.Header.Get("X-Real-IP"),
-		"Accept":           req.Header.Get("Accept"),
+		"User-Agent":      req.Header.Get("User-Agent"),
+		"X-Forwarded-For": req.Header.Get("X-Forwarded-For"),
+		"X-Real-IP":       req.Header.Get("X-Real-IP"),
+		"Accept":          req.Header.Get("Accept"),
 		"Accept-Language": req.Header.Get("Accept-Language"),
-		"Content-Type":     req.Header.Get("Content-Type"),
+		"Content-Type":    req.Header.Get("Content-Type"),
 	}
 
 	headersJSON, _ := json.Marshal(importantHeaders)

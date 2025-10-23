@@ -7,14 +7,15 @@ Copyright Renj
 package config
 
 import (
-	"encoding/json"
 	"os"
 	"sandwich/constant"
+	"sandwich/json"
 	"strings"
 )
 
 // Config 主配置结构体，包含所有服务配置信息
 type Config struct {
+	Proxy        ProxyConfig        ` yaml:"proxy json:proxy"`
 	Servers      []ServerConfig     `yaml:"servers" json:"servers"`             // 服务器配置列表
 	Middleware   []MiddlewareConfig `yaml:"middleware" json:"middleware"`       // 中间件配置列表
 	Features     FeatureConfig      `yaml:"features" json:"features"`           // 功能特性配置
@@ -39,6 +40,11 @@ type Config struct {
 	} `yaml:"pprof" json:"pprof"`
 }
 
+type ProxyConfig struct {
+	FlushInterval int64 `yaml:"flush_interval" json:"flush_interval"`
+	BufSize       int   `yaml:"buf_size" json:"buf_size"`
+}
+
 // ServerConfig 服务器配置结构体
 type ServerConfig struct {
 	Name           string         `yaml:"name" json:"name"`                         // 服务器名称
@@ -50,6 +56,12 @@ type ServerConfig struct {
 	MaxRequestBody int64          `yaml:"max_request_body" json:"max_request_body"` // 最大请求体大小（字节）
 	TLS            *TLSConfig     `yaml:"tls,omitempty" json:"tls,omitempty"`       // TLS配置
 	DomainConfig   []DomainConfig `yaml:"domains" json:"domains"`                   // 域名绑定配置
+	// 扩展配置
+	ReadTimeout       int64 `yaml:"read_timeout" json:"read_timeout"`
+	WriteTimeout      int64 `yaml:"write_timeout" json:"write_timeout"`
+	IdleTimeout       int64 `yaml:"idle_timeout" json:"idle_timeout"`
+	ReadHeaderTimeout int64 `yaml:"read_header_timeout" json:"read_header_timeout"`
+	MaxHeaderBytes    int64 `yaml:"max_header_bytes" json:"max_header_bytes"`
 }
 
 // TLSConfig TLS证书配置结构体

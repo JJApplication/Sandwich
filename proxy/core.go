@@ -17,12 +17,14 @@ import (
 	"sandwich/prehandler"
 	"sandwich/serror"
 	"sandwich/stat"
+	"sandwich/utils"
 	"sync"
 	"time"
 )
 
 const (
-	FlushInterval = 500 * time.Millisecond
+	FlushInterval = 100
+	BufferSize    = 32 * 1024
 )
 
 var (
@@ -54,6 +56,32 @@ func getOptimizedTransport() *http.Transport {
 	return sharedTransport
 }
 
+type syncBufferPool struct {
+	pool    sync.Pool
+	bufSize int
+}
+
+func (s *syncBufferPool) Get() []byte {
+	return s.pool.Get().([]byte)
+}
+
+func (s *syncBufferPool) Put(buf []byte) {
+	if cap(buf) == s.bufSize {
+		s.pool.Put(buf)
+	}
+}
+
+func getBufferPool(bufSize int) httputil.BufferPool {
+	return &syncBufferPool{
+		pool: sync.Pool{
+			New: func() interface{} {
+				return make([]byte, bufSize)
+			},
+		},
+		bufSize: bufSize,
+	}
+}
+
 // http转发
 func newProxy() *httputil.ReverseProxy {
 	cfg := config.Get()
@@ -75,9 +103,9 @@ func newProxy() *httputil.ReverseProxy {
 			log.DebugF("parse request, URL: %#v\n", request.URL)
 		},
 		Transport:     getOptimizedTransport(),
-		FlushInterval: FlushInterval,
+		FlushInterval: time.Duration(utils.DefaultInt64(cfg.Proxy.FlushInterval, FlushInterval)) * time.Millisecond,
 		ErrorLog:      nil,
-		BufferPool:    nil,
+		BufferPool:    getBufferPool(utils.DefaultInt(cfg.Proxy.BufSize, BufferSize)),
 		ModifyResponse: func(response *http.Response) error {
 			for _, mod := range mods {
 				mod.Use(response)
@@ -85,8 +113,8 @@ func newProxy() *httputil.ReverseProxy {
 			return nil
 		},
 		ErrorHandler: func(writer http.ResponseWriter, request *http.Request, err error) {
-			log.DebugF("host: %s, url: %#v, proto: %s, method: %s\n",
-				request.Host, request.URL, request.Proto, request.Method)
+			log.DebugF("host: %s, url: %#v, proto: %s, method: %s, error: %v\n",
+				request.Host, request.URL, request.Proto, request.Method, err)
 			stat.Add(stat.Fail)
 			// 熔断判断
 			switch request.Header.Get(serror.SandwichInternalFlag) {

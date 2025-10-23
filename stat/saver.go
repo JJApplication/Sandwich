@@ -1,9 +1,9 @@
 package stat
 
 import (
-	"encoding/json"
 	"os"
 	"sandwich/config"
+	"sandwich/json"
 	"sync"
 )
 

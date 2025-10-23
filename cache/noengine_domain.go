@@ -8,8 +8,8 @@
 package cache
 
 import (
-	"encoding/json"
 	"sandwich/config"
+	"sandwich/json"
 	"sandwich/log"
 	"sync"
 )

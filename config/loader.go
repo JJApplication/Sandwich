@@ -7,12 +7,12 @@ Copyright Renj
 package config
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sandwich/constant"
+	"sandwich/json"
 	"strconv"
 	"strings"
 	"sync"

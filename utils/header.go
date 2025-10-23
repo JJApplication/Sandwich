@@ -59,7 +59,7 @@ func AddSecureHeader(response *http.Response) {
 	}
 
 	// 防止CSRF攻击 - SameSite Cookie 策略
-	response.Header.Set("Set-Cookie", "SameSite=Strict; Secure; HttpOnly")
+	response.Header.Set("Set-Cookie", "SameSite=Strict; Path=/; Secure; HttpOnly")
 
 	// 引用策略 - 控制Referer头信息泄露
 	response.Header.Set("Referrer-Policy", "strict-origin-when-cross-origin")

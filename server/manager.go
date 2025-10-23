@@ -7,6 +7,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -155,12 +156,12 @@ func (m *Manager) startServer(serverConfig config.ServerConfig) error {
 		Addr:    addr,
 		Handler: m.handler,
 		// 设置合理的超时时间
-		ReadTimeout:       30 * time.Second,
-		WriteTimeout:      30 * time.Second,
-		IdleTimeout:       60 * time.Second,
-		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       time.Second * time.Duration(m.defInt64(serverConfig.ReadTimeout, 30)),
+		WriteTimeout:      time.Second * time.Duration(m.defInt64(serverConfig.WriteTimeout, 30)),
+		IdleTimeout:       time.Second * time.Duration(m.defInt64(serverConfig.IdleTimeout, 60)),
+		ReadHeaderTimeout: time.Second * time.Duration(m.defInt64(serverConfig.ReadHeaderTimeout, 10)),
 		// 设置最大请求体大小
-		MaxHeaderBytes: 1 << 20, // 1MB header limit
+		MaxHeaderBytes: m.defInt(int(serverConfig.MaxHeaderBytes), 5<<20), // 1MB header limit
 		Protocols:      proto,
 	}
 
@@ -503,4 +504,26 @@ func (m *Manager) GetListenAddresses() []string {
 	}
 
 	return addresses
+}
+
+// 为基础类型提供判空处理
+func (m *Manager) defInt(v, d int) int {
+	if reflect.ValueOf(v).IsZero() {
+		return d
+	}
+	return v
+}
+
+func (m *Manager) defInt64(v, d int64) int64 {
+	if reflect.ValueOf(v).IsZero() {
+		return d
+	}
+	return v
+}
+
+func (m *Manager) defString(v, d string) string {
+	if reflect.ValueOf(v).IsZero() {
+		return d
+	}
+	return v
 }
