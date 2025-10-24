@@ -357,7 +357,7 @@ func (app *Application) Stop() error {
 
 	// 停止状态统计服务器
 	if app.statServer != nil {
-		if err := app.statServer.Start(); err != nil {
+		if err := app.statServer.Stop(); err != nil {
 			app.logger.Printf("停止状态服务器失败: %v", err)
 		}
 	}

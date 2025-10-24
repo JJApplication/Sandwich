@@ -29,28 +29,49 @@ const (
 
 var (
 	// 全局共享的Transport实例，避免重复创建
-	sharedTransport *http.Transport
+	sharedTransport *sandwichTransport
 	transportOnce   sync.Once
 )
 
+type sandwichTransport struct {
+	Transport http.RoundTripper
+}
+
+func (t *sandwichTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	if config.Debug {
+		start := time.Now()
+		resp, err := t.Transport.RoundTrip(req)
+
+		if config.Debug {
+			utils.PerformCalc(start)
+		}
+
+		return resp, err
+	}
+
+	return t.Transport.RoundTrip(req)
+}
+
 // getOptimizedTransport 获取优化的HTTP传输层配置
-func getOptimizedTransport() *http.Transport {
+func getOptimizedTransport() *sandwichTransport {
 	transportOnce.Do(func() {
-		sharedTransport = &http.Transport{
-			// 连接池配置
-			MaxIdleConns:        100,              // 最大空闲连接数
-			MaxIdleConnsPerHost: 20,               // 每个主机最大空闲连接数
-			MaxConnsPerHost:     50,               // 每个主机最大连接数
-			IdleConnTimeout:     90 * time.Second, // 空闲连接超时
-			// 超时配置
-			ResponseHeaderTimeout: 30 * time.Second, // 响应头超时
-			ExpectContinueTimeout: 1 * time.Second,  // 100-continue超时
-			// 启用TCP keep-alive
-			DisableKeepAlives: false,
-			// 启用HTTP/2支持
-			ForceAttemptHTTP2: true,
-			// 禁用压缩以减少CPU开销（如果不需要）
-			DisableCompression: false,
+		sharedTransport = &sandwichTransport{
+			Transport: &http.Transport{
+				// 连接池配置
+				MaxIdleConns:        100,              // 最大空闲连接数
+				MaxIdleConnsPerHost: 20,               // 每个主机最大空闲连接数
+				MaxConnsPerHost:     50,               // 每个主机最大连接数
+				IdleConnTimeout:     90 * time.Second, // 空闲连接超时
+				// 超时配置
+				ResponseHeaderTimeout: 30 * time.Second, // 响应头超时
+				ExpectContinueTimeout: 1 * time.Second,  // 100-continue超时
+				// 启用TCP keep-alive
+				DisableKeepAlives: false,
+				// 启用HTTP/2支持
+				ForceAttemptHTTP2: true,
+				// 禁用压缩以减少CPU开销（如果不需要）
+				DisableCompression: false,
+			},
 		}
 	})
 	return sharedTransport
@@ -107,6 +128,16 @@ func newProxy() *httputil.ReverseProxy {
 		ErrorLog:      nil,
 		BufferPool:    getBufferPool(utils.DefaultInt(cfg.Proxy.BufSize, BufferSize)),
 		ModifyResponse: func(response *http.Response) error {
+			if config.Debug {
+				start, end, sub := utils.PerformTime(func() {
+					for _, mod := range mods {
+						mod.Use(response)
+					}
+				})
+				log.DebugF("Perform time for response modifier: start - %v end - %v - sub: %v\n", start, end, sub)
+				return nil
+			}
+
 			for _, mod := range mods {
 				mod.Use(response)
 			}

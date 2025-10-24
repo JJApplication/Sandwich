@@ -22,7 +22,8 @@ import (
 )
 
 var (
-	cf *Config
+	cf    *Config
+	Debug bool
 )
 
 func Get() *Config {
@@ -121,6 +122,7 @@ func (cl *ConfigLoader) LoadConfig() (*Config, error) {
 		cl.lastModTime = stat.ModTime()
 	}
 
+	Debug = config.Debug
 	return cl.config, nil
 }
 

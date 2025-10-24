@@ -3,6 +3,7 @@ package stat
 import (
 	"context"
 	"github.com/allegro/bigcache/v3"
+	"sandwich/structure"
 	"sync/atomic"
 	"time"
 )
@@ -16,7 +17,7 @@ var (
 	today  int64
 
 	// geo数据
-	geoIp map[string]*int64 // 地区请求
+	geoIp *structure.Map[*int64] // 地区请求
 )
 
 func C() *bigcache.BigCache {
@@ -38,20 +39,14 @@ func init() {
 func initCacheFromFile() {
 	m := LoadStat()
 	if m != nil {
-		atomic.StoreInt64(&total, m["total"])
-		atomic.StoreInt64(&api, m["api"])
-		atomic.StoreInt64(&static, m["static"])
-		atomic.StoreInt64(&fail, m["fail"])
-		atomic.StoreInt64(&today, m["today"])
+		atomic.StoreInt64(&total, m.MustGet("total"))
+		atomic.StoreInt64(&api, m.MustGet("api"))
+		atomic.StoreInt64(&static, m.MustGet("static"))
+		atomic.StoreInt64(&fail, m.MustGet("fail"))
+		atomic.StoreInt64(&today, m.MustGet("today"))
 	}
 	// 立即初始化一次
 	go syncStat()
 
-	geo := LoadGeoStat()
-	geoIp = make(map[string]*int64)
-	if geo != nil {
-		for k, v := range geo {
-			geoIp[k] = &v
-		}
-	}
+	geoIp = LoadGeoStat()
 }

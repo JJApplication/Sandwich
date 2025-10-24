@@ -42,9 +42,9 @@ type FlowController struct {
 
 // RateLimiter 多时间窗口速率限制器
 type RateLimiter struct {
-	limits   []TimeWindowLimit
-	records  map[string][]RequestRecord
-	mux      sync.RWMutex
+	limits  []TimeWindowLimit
+	records map[string][]RequestRecord
+	mux     sync.RWMutex
 }
 
 // TimeWindowLimit 时间窗口限制
@@ -359,6 +359,7 @@ func (rl *RateLimiter) cleanup() {
 }
 
 // 即将被废弃的旧接口，保持向后兼容
+
 type ConnLimiter struct {
 	concurrentConn int
 	bucket         chan int

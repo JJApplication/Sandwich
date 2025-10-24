@@ -6,6 +6,7 @@ Created: 2021/12/12 by Landers
 package balancer
 
 import (
+	"sandwich/structure"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -27,8 +28,7 @@ type LoadBalancer struct {
 var (
 	// 全局负载均衡器实例
 	globalBalancer = &LoadBalancer{}
-	balancerCache  = make(map[string]*LoadBalancer)
-	cacheMutex     sync.RWMutex
+	balancerCache  = structure.NewMap[*LoadBalancer]()
 )
 
 // GetBalancer 获取或创建负载均衡器
@@ -43,19 +43,8 @@ func GetBalancer(hosts []string) *LoadBalancer {
 		key += host + "|"
 	}
 
-	cacheMutex.RLock()
-	balancer, exists := balancerCache[key]
-	cacheMutex.RUnlock()
-
+	balancer, exists := balancerCache.Get(key)
 	if exists {
-		return balancer
-	}
-
-	cacheMutex.Lock()
-	defer cacheMutex.Unlock()
-
-	// 双重检查
-	if balancer, exists := balancerCache[key]; exists {
 		return balancer
 	}
 
@@ -65,7 +54,7 @@ func GetBalancer(hosts []string) *LoadBalancer {
 		lastUpdate: time.Now(),
 	}
 	copy(balancer.hosts, hosts)
-	balancerCache[key] = balancer
+	balancerCache.Put(key, balancer)
 
 	return balancer
 }

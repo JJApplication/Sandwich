@@ -8,26 +8,22 @@ package data
 import (
 	"fmt"
 	"sandwich/log"
-	"sync"
+	"sandwich/structure"
 )
 
 // 域名端口映射表
-var domainPool map[string][]int
-
 // 更加安全的端口映射表
-var domainPoolSync sync.Mutex
+var domainPool = structure.NewMap[[]int]()
 
 func InitPool() {
-	domainPoolSync = sync.Mutex{}
-	domainPool = make(map[string][]int, 10)
 	GetDataFromMongo()
 }
 
 func getDomainPort(host string) []int {
-	if d, ok := domainPool[host]; ok {
+	if d, ok := domainPool.Get(host); ok {
 		return d
 	}
-	return []int{}
+	return nil
 }
 
 // DomainReflect 将端口转换为ip地址 单机的ip都是127.0.0.1
@@ -53,18 +49,17 @@ func GetDataFromMongo() {
 
 	// 托管随机端口服务和固定端口服务
 	for _, d := range data {
-		domainPoolSync.Lock()
 		log.InfoF("load [%s] to pool\n", d.Meta.Name)
 		if d.Meta.Meta.Domain != "" && d.Meta.RunData.RandomPort {
-			domainPool[d.Meta.Meta.Domain] = d.Meta.RunData.Ports
+			domainPool.Put(d.Meta.Meta.Domain, d.Meta.RunData.Ports)
 		} else if d.Meta.Meta.Domain != "" && len(d.Meta.RunData.Ports) > 0 && !d.Meta.RunData.RandomPort {
-			domainPool[d.Meta.Meta.Domain] = d.Meta.RunData.Ports
+			domainPool.Put(d.Meta.Meta.Domain, d.Meta.RunData.Ports)
 		}
-		domainPoolSync.Unlock()
 	}
 
 	log.Info("domainPool is:")
-	for k, v := range domainPool {
-		log.InfoF("[%s]: %+v\n", k, v)
-	}
+	domainPool.Range(func(key string, value []int) bool {
+		log.InfoF("[%s]: %#v\n", key, value)
+		return true
+	})
 }

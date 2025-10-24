@@ -7,6 +7,7 @@ import (
 	geo2 "sandwich/geo"
 	"sandwich/json"
 	"sandwich/log"
+	"sandwich/structure"
 	"sync/atomic"
 )
 
@@ -16,26 +17,28 @@ const (
 	GeoSet = "ip2country"
 )
 
-func LoadGeoStat() map[string]int64 {
+func LoadGeoStat() *structure.Map[*int64] {
 	cfg := config.Get()
-	geoLock.Lock()
-	defer geoLock.Unlock()
 
 	data, err := os.ReadFile(cfg.Stat.GeoFile)
 	if err != nil {
-		return make(map[string]int64)
+		return structure.NewMap[*int64]()
 	}
-	var stat map[string]int64
-	if err = json.Unmarshal(data, &stat); err != nil {
-		return make(map[string]int64)
+
+	var geoStat = structure.NewMap[*int64]()
+	var tmp map[string]int64
+	if err = json.Unmarshal(data, &tmp); err != nil {
+		return structure.NewMap[*int64]()
 	}
-	return stat
+	for k, v := range tmp {
+		geoStat.Put(k, &v)
+	}
+
+	return geoStat
 }
 
 func SaveGeoStat() {
 	cfg := config.Get()
-	geoLock.Lock()
-	defer geoLock.Unlock()
 	if _, err := os.Stat(cfg.Stat.GeoFile); os.IsNotExist(err) {
 		// 创建文件
 		data, _ := json.Marshal(map[string]int64{})
@@ -51,13 +54,13 @@ func SaveGeoStat() {
 
 // 同步数据到缓存中
 func syncGEOStat() {
-	geoLock.Lock()
-	defer geoLock.Unlock()
 	// 将临时的geo指针转换为数据
 	geoDataMap := make(map[string]int64)
-	for key, v := range geoIp {
-		geoDataMap[key] = *v
-	}
+
+	geoIp.Range(func(key string, value *int64) bool {
+		geoDataMap[key] = *value
+		return true
+	})
 
 	data, err := json.Marshal(geoDataMap)
 	if err != nil {
@@ -72,19 +75,15 @@ func AddGeo(addr string) {
 	if err != nil {
 		return
 	}
-	geoLock.RLock()
 	isoCode := geo2.GeoLookUp(ip)
-	geoLock.RUnlock()
 	if isoCode == "" {
 		return
 	}
 
 	// 原子操作geo指针时 只需要读锁
-	geo, ok := geoIp[isoCode]
+	geo, ok := geoIp.Get(isoCode)
 	if !ok {
-		geoLock.Lock()
-		geoIp[isoCode] = new(int64)
-		geoLock.Unlock()
+		geoIp.Put(isoCode, new(int64))
 	} else {
 		atomic.AddInt64(geo, 1)
 	}

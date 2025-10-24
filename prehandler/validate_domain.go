@@ -16,6 +16,5 @@ func ValidateDomain(req *http.Request) bool {
 		req.Header.Get(cf.ProxyHeader.BackendHeader) != "" {
 		return true
 	}
-	_, ok := cache.DomainAllowList[domain]
-	return ok
+	return cache.DomainAllowList.Exist(domain)
 }

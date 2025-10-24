@@ -213,9 +213,10 @@ type WebSocketConfig struct {
 
 // GzipConfig Gzip压缩配置结构体
 type GzipConfig struct {
-	Enabled bool     `yaml:"enabled" json:"enabled"` // 是否启用Gzip压缩
-	Level   int      `yaml:"level" json:"level"`     // 压缩级别 1-9
-	Types   []string `yaml:"types" json:"types"`     // 压缩的MIME类型列表
+	Enabled   bool     `yaml:"enabled" json:"enabled"`     // 是否启用Gzip压缩
+	Level     int      `yaml:"level" json:"level"`         // 压缩级别 1-9
+	Types     []string `yaml:"types" json:"types"`         // 压缩的MIME类型列表
+	Threshold int      `yaml:"threshold" json:"threshold"` // 开启压缩的阈值
 }
 
 // CacheConfig 缓存配置结构体

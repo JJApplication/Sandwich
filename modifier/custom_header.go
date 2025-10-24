@@ -45,144 +45,144 @@ func (cm *CustomHeaderModifier) Use(response *http.Response) {
 }
 
 // ModifyResponse 处理响应的自定义头添加
-func (c *CustomHeaderModifier) ModifyResponse(response *http.Response) error {
+func (cm *CustomHeaderModifier) ModifyResponse(response *http.Response) error {
 	// 检查是否启用
-	if !c.enabled {
+	if !cm.enabled {
 		return nil
 	}
 
-	c.mu.RLock()
-	defer c.mu.RUnlock()
+	cm.mu.RLock()
+	defer cm.mu.RUnlock()
 
 	// 添加所有配置的自定义头
-	utils.AddHeader(response, c.headers)
+	utils.AddHeader(response, cm.headers)
 
 	return nil
 }
 
 // IsEnabled 返回是否启用自定义头修改器
-func (c *CustomHeaderModifier) IsEnabled() bool {
-	return c.enabled
+func (cm *CustomHeaderModifier) IsEnabled() bool {
+	return cm.enabled
 }
 
 // UpdateConfig 更新配置（支持热更新）
-func (c *CustomHeaderModifier) UpdateConfig() {
+func (cm *CustomHeaderModifier) UpdateConfig() {
 	cfg := config.Get()
 
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	cm.mu.Lock()
+	defer cm.mu.Unlock()
 
 	// 清空现有配置
-	c.headers = make(map[string]string)
+	cm.headers = make(map[string]string)
 
 	// 重新加载配置
 	for key, value := range cfg.CustomHeader {
-		c.headers[key] = value
+		cm.headers[key] = value
 	}
 
 	// 更新启用状态
-	c.enabled = len(c.headers) > 0
+	cm.enabled = len(cm.headers) > 0
 
-	log.DebugF("自定义头配置已更新: enabled=%v, headers=%v", c.enabled, c.headers)
+	log.DebugF("自定义头配置已更新: enabled=%v, headers=%v", cm.enabled, cm.headers)
 }
 
 // GetName 获取修改器名称
-func (c *CustomHeaderModifier) GetName() string {
+func (cm *CustomHeaderModifier) GetName() string {
 	return "custom-header"
 }
 
 // AddHeader 动态添加自定义头
-func (c *CustomHeaderModifier) AddHeader(key, value string) {
+func (cm *CustomHeaderModifier) AddHeader(key, value string) {
 	if key == "" {
 		return
 	}
 
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	cm.mu.Lock()
+	defer cm.mu.Unlock()
 
-	c.headers[key] = value
+	cm.headers[key] = value
 	// 如果之前没有头部配置，现在启用修改器
-	if !c.enabled && len(c.headers) > 0 {
-		c.enabled = true
+	if !cm.enabled && len(cm.headers) > 0 {
+		cm.enabled = true
 	}
 
 	log.DebugF("动态添加自定义头: %s = %s", key, value)
 }
 
 // RemoveHeader 动态移除自定义头
-func (c *CustomHeaderModifier) RemoveHeader(key string) {
+func (cm *CustomHeaderModifier) RemoveHeader(key string) {
 	if key == "" {
 		return
 	}
 
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	cm.mu.Lock()
+	defer cm.mu.Unlock()
 
-	delete(c.headers, key)
+	delete(cm.headers, key)
 	// 如果没有头部配置了，禁用修改器
-	if len(c.headers) == 0 {
-		c.enabled = false
+	if len(cm.headers) == 0 {
+		cm.enabled = false
 	}
 
 	log.DebugF("动态移除自定义头: %s", key)
 }
 
 // GetHeaders 获取当前所有自定义头（只读副本）
-func (c *CustomHeaderModifier) GetHeaders() map[string]string {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
+func (cm *CustomHeaderModifier) GetHeaders() map[string]string {
+	cm.mu.RLock()
+	defer cm.mu.RUnlock()
 
 	headers := make(map[string]string)
-	for key, value := range c.headers {
+	for key, value := range cm.headers {
 		headers[key] = value
 	}
 	return headers
 }
 
 // SetHeaders 批量设置自定义头
-func (c *CustomHeaderModifier) SetHeaders(headers map[string]string) {
+func (cm *CustomHeaderModifier) SetHeaders(headers map[string]string) {
 	if headers == nil {
-		headers = make(map[string]string)
+		return
 	}
 
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	cm.mu.Lock()
+	defer cm.mu.Unlock()
 
-	c.headers = make(map[string]string)
+	cm.headers = make(map[string]string)
 	for key, value := range headers {
-		c.headers[key] = value
+		cm.headers[key] = value
 	}
 
-	c.enabled = len(c.headers) > 0
+	cm.enabled = len(cm.headers) > 0
 
-	log.DebugF("批量设置自定义头: enabled=%v, count=%d", c.enabled, len(c.headers))
+	log.DebugF("批量设置自定义头: enabled=%v, count=%d", cm.enabled, len(cm.headers))
 }
 
 // ClearHeaders 清空所有自定义头
-func (c *CustomHeaderModifier) ClearHeaders() {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+func (cm *CustomHeaderModifier) ClearHeaders() {
+	cm.mu.Lock()
+	defer cm.mu.Unlock()
 
-	c.headers = make(map[string]string)
-	c.enabled = false
+	cm.headers = make(map[string]string)
+	cm.enabled = false
 
 	log.Debug("已清空所有自定义头")
 }
 
 // HasHeader 检查是否包含指定的头部
-func (c *CustomHeaderModifier) HasHeader(key string) bool {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
+func (cm *CustomHeaderModifier) HasHeader(key string) bool {
+	cm.mu.RLock()
+	defer cm.mu.RUnlock()
 
-	_, exists := c.headers[key]
+	_, exists := cm.headers[key]
 	return exists
 }
 
 // GetHeader 获取指定头部的值
-func (c *CustomHeaderModifier) GetHeader(key string) (string, bool) {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
+func (cm *CustomHeaderModifier) GetHeader(key string) (string, bool) {
+	cm.mu.RLock()
+	defer cm.mu.RUnlock()
 
-	value, exists := c.headers[key]
+	value, exists := cm.headers[key]
 	return value, exists
 }

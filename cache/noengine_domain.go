@@ -11,20 +11,19 @@ import (
 	"sandwich/config"
 	"sandwich/json"
 	"sandwich/log"
-	"sync"
+	"sandwich/structure"
 )
 
 type DomainMap struct {
-	Domains   []string             `json:"domains"`   // 允许域名
-	DomainMap map[string]domainMap `json:"domainMap"` // 域名映射
+	Domains   []string                  `json:"domains"`   // 允许域名
+	DomainMap *structure.Map[domainMap] `json:"domainMap"` // 域名映射
 }
 
 // AppDomainMap 获取微服务的域名映射
 // 仅针对前端服务
 // blog.renj.io -> {front: BlogFront, back: Blog}
 var (
-	AppDomainMapLock sync.Mutex
-	AppDomainMap     map[string]domainMap
+	AppDomainMap = structure.NewMap[domainMap]()
 )
 
 type domainMap struct {
@@ -32,17 +31,9 @@ type domainMap struct {
 	Backend  string `json:"backend"`
 }
 
-func init() {
-	AppDomainMap = make(map[string]domainMap)
-}
-
 func InitNoEngineDomainMap() {
-	AppDomainMapLock.Lock()
-	defer AppDomainMapLock.Unlock()
 	appData := loadAppDomainMap()
-	if appData == nil {
-		AppDomainMap = make(map[string]domainMap)
-	} else {
+	if appData != nil {
 		AppDomainMap = appData.DomainMap
 	}
 	InitDomainAllowList(appData)
@@ -60,22 +51,38 @@ func loadAppDomainMap() *DomainMap {
 		return nil
 	}
 
-	var tmp *DomainMap
+	type tmpDomainMap struct {
+		Domains   []string             `json:"domains"`   // 允许域名
+		DomainMap map[string]domainMap `json:"domainMap"` // 域名映射
+	}
+	var tmp *tmpDomainMap
 	if err = json.Unmarshal(data, &tmp); err != nil {
 		log.ErrorF("AppDomain config parse error:%s\n", err.Error())
 		return nil
 	}
 
-	return tmp
+	dmap := structure.NewMap[domainMap]()
+	for key, domain := range tmp.DomainMap {
+		dmap.Put(key, domain)
+	}
+
+	return &DomainMap{
+		Domains:   tmp.Domains,
+		DomainMap: dmap,
+	}
 }
 
 // GetDomainByApp 通过app查找域名
 func GetDomainByApp(app string) string {
-	for domain, appMap := range AppDomainMap {
+	key, _, ok := AppDomainMap.Find(func(domain string, appMap domainMap) bool {
 		if appMap.Frontend == app || appMap.Backend == app {
-			return domain
+			return true
 		}
-		continue
+		return false
+	})
+
+	if ok {
+		return key
 	}
 
 	return ""

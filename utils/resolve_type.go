@@ -14,7 +14,10 @@ func ResolveSrv(r *http.Request) int {
 
 func resolveType(req *http.Request) int {
 	host := req.Host
-	app := cache.AppDomainMap[host]
+	app, ok := cache.AppDomainMap.Get(host)
+	if !ok {
+		return constant.Frontend
+	}
 	if app.Frontend != "" && app.Backend != "" {
 		backHeader := req.Header.Get(config.Get().ProxyHeader.BackendHeader)
 		if backHeader == "yes" {

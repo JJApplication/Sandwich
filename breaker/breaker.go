@@ -12,8 +12,8 @@ package breaker
 import (
 	"sandwich/config"
 	"sandwich/log"
+	"sandwich/structure"
 	"sandwich/utils"
-	"sync"
 	"time"
 )
 
@@ -38,21 +38,19 @@ type BreakerBucket struct {
 }
 
 type Breaker struct {
-	mux           sync.Mutex
-	serviceBucket map[string]*BreakerBucket
+	serviceBucket *structure.Map[*BreakerBucket]
 	cf            *config.BreakConfig
 }
 
 func NewBreaker() *Breaker {
 	return &Breaker{
-		serviceBucket: make(map[string]*BreakerBucket, 10),
-		mux:           sync.Mutex{},
+		serviceBucket: structure.NewSizeMap[*BreakerBucket](DefaultBucket),
 		cf:            &config.Get().Break,
 	}
 }
 
 func (b *Breaker) Get(domain string) bool {
-	sb, ok := b.serviceBucket[domain]
+	sb, ok := b.serviceBucket.Get(domain)
 	if !ok {
 		b.add(domain)
 		return true
@@ -65,7 +63,7 @@ func (b *Breaker) Get(domain string) bool {
 }
 
 func (b *Breaker) Set(domain string) bool {
-	sb, ok := b.serviceBucket[domain]
+	sb, ok := b.serviceBucket.Get(domain)
 	if !ok {
 		return true
 	}
@@ -78,24 +76,21 @@ func (b *Breaker) Set(domain string) bool {
 }
 
 func (b *Breaker) add(domain string) {
-	b.mux.Lock()
-	b.serviceBucket[domain] = &BreakerBucket{
+	b.serviceBucket.Put(domain, &BreakerBucket{
 		errorConn: utils.DefaultInt(b.cf.MaxError, DefaultMaxError),
 		bucket:    make(chan int, utils.DefaultInt(b.cf.Bucket, DefaultBucket)),
-	}
-	b.mux.Unlock()
+	})
 }
 
 // Reset 自定重置
 func (b *Breaker) Reset() {
 	ticker := time.Tick(time.Duration(b.cf.Reset) * time.Second)
 	for range ticker {
-		for domain, s := range b.serviceBucket {
-			b.mux.Lock()
-			s.bucket = make(chan int, b.cf.Bucket)
-			log.InfoF("[%s] breaker now is reset\n", domain)
-			b.mux.Unlock()
-		}
+		b.serviceBucket.Range(func(key string, value *BreakerBucket) bool {
+			value.bucket = make(chan int, b.cf.Bucket)
+			log.InfoF("[%s] breaker now is reset\n", key)
+			return true
+		})
 	}
 }
 

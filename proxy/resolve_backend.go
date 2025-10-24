@@ -25,7 +25,7 @@ func resolveBackend(req *http.Request, fromConf bool) *url.URL {
 	host := req.Host
 	var app string
 	if fromConf {
-		app = cache.AppDomainMap[host].Backend
+		app = cache.AppDomainMap.MustGet(host).Backend
 	} else {
 		// 获取要转发到的后端服务名
 		app = req.Header.Get(config.Get().ProxyHeader.ProxyApp)

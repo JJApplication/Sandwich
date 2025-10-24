@@ -24,6 +24,7 @@ type GzipModifier struct {
 	enabled    bool
 	level      int
 	types      []string
+	threshold  int
 	writerPool sync.Pool // gzip.Writer 对象池
 	bufferPool sync.Pool // bytes.Buffer 对象池
 }
@@ -32,9 +33,10 @@ type GzipModifier struct {
 func NewGzipModifier() *GzipModifier {
 	cfg := config.Get()
 	gm := &GzipModifier{
-		enabled: cfg.Features.Gzip.Enabled,
-		level:   cfg.Features.Gzip.Level,
-		types:   cfg.Features.Gzip.Types,
+		enabled:   cfg.Features.Gzip.Enabled,
+		level:     cfg.Features.Gzip.Level,
+		types:     cfg.Features.Gzip.Types,
+		threshold: cfg.Features.Gzip.Threshold,
 	}
 
 	// 初始化 gzip.Writer 对象池
@@ -82,17 +84,25 @@ func (g *GzipModifier) ModifyResponse(response *http.Response) error {
 		return nil
 	}
 
+	ct := response.Header.Get("Content-Length")
+	if ct != "" {
+		size, err := strconv.Atoi(ct)
+		if err == nil && size <= g.threshold {
+			return nil
+		}
+	}
 	// 读取原始响应体
-	originalBody, err := io.ReadAll(response.Body)
+	var buf bytes.Buffer
+	tee := io.TeeReader(response.Body, &buf)
+	originalBody, err := io.ReadAll(tee)
 	if err != nil {
 		log.DebugF("读取响应体失败: %s", err.Error())
 		return err
 	}
-	response.Body.Close()
 
 	// 检查响应体大小，太小的响应不需要压缩
-	if len(originalBody) < 1024 { // 小于1KB不压缩
-		response.Body = io.NopCloser(bytes.NewReader(originalBody))
+	if len(originalBody) <= g.threshold { // 小于1KB不压缩
+		response.Body = io.NopCloser(bytes.NewReader(buf.Bytes()))
 		return nil
 	}
 
@@ -101,14 +111,14 @@ func (g *GzipModifier) ModifyResponse(response *http.Response) error {
 	if err != nil {
 		log.DebugF("gzip压缩失败: %s", err.Error())
 		// 压缩失败时返回原始响应
-		response.Body = io.NopCloser(bytes.NewReader(originalBody))
+		response.Body = io.NopCloser(bytes.NewReader(buf.Bytes()))
 		return nil
 	}
 
 	// 检查压缩效果，如果压缩后更大则不使用压缩
 	if len(compressedBody) >= len(originalBody) {
 		log.Debug("压缩后大小未减少，使用原始响应")
-		response.Body = io.NopCloser(bytes.NewReader(originalBody))
+		response.Body = io.NopCloser(bytes.NewReader(buf.Bytes()))
 		return nil
 	}
 
@@ -120,10 +130,11 @@ func (g *GzipModifier) ModifyResponse(response *http.Response) error {
 	// 设置新的响应体
 	response.Body = io.NopCloser(bytes.NewReader(compressedBody))
 
-	log.DebugF("gzip压缩成功: %d -> %d 字节 (压缩率: %.2f%%)",
-		len(originalBody), len(compressedBody),
-		float64(len(originalBody)-len(compressedBody))/float64(len(originalBody))*100)
-
+	if config.Debug {
+		log.DebugF("gzip压缩成功: %d -> %d 字节 (压缩率: %.2f%%)",
+			len(originalBody), len(compressedBody),
+			float64(len(originalBody)-len(compressedBody))/float64(len(originalBody))*100)
+	}
 	return nil
 }
 

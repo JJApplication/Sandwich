@@ -4,35 +4,32 @@ import (
 	"os"
 	"sandwich/config"
 	"sandwich/json"
-	"sync"
+	"sandwich/structure"
 )
 
 // 持久化存储数据到文件
 
-var (
-	lock    = sync.RWMutex{}
-	geoLock = sync.RWMutex{}
-)
-
-func LoadStat() map[string]int64 {
+func LoadStat() *structure.Map[int64] {
 	cfg := config.Get()
-	lock.Lock()
-	defer lock.Unlock()
 
 	data, err := os.ReadFile(cfg.Stat.SaveFile)
 	if err != nil {
-		return make(map[string]int64)
+		return structure.NewMap[int64]()
 	}
-	var stat map[string]int64
-	if err = json.Unmarshal(data, &stat); err != nil {
-		return make(map[string]int64)
+	var stat = structure.NewMap[int64]()
+	var tmp map[string]int64
+	if err = json.Unmarshal(data, &tmp); err != nil {
+		return structure.NewMap[int64]()
 	}
+
+	for k, v := range tmp {
+		stat.Put(k, v)
+	}
+
 	return stat
 }
 
 func SaveStat(f string) {
-	lock.Lock()
-	defer lock.Unlock()
 	if _, err := os.Stat(f); os.IsNotExist(err) {
 		// 创建文件
 		data, _ := json.Marshal(map[string]int64{
