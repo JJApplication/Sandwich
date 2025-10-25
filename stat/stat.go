@@ -3,6 +3,7 @@ package stat
 import (
 	"encoding/binary"
 	"fmt"
+	"sandwich/config"
 	"sync/atomic"
 	"time"
 )
@@ -24,6 +25,10 @@ const (
 )
 
 func Add(tp int) {
+	cfg := config.Get()
+	if !cfg.Stat.EnableStat {
+		return
+	}
 	switch tp {
 	case Total:
 		addTotal()

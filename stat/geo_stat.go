@@ -18,17 +18,17 @@ const (
 )
 
 func LoadGeoStat() *structure.Map[*int64] {
+	var geoStat = structure.NewMap[*int64]()
 	cfg := config.Get()
 
 	data, err := os.ReadFile(cfg.Stat.GeoFile)
 	if err != nil {
-		return structure.NewMap[*int64]()
+		return geoStat
 	}
 
-	var geoStat = structure.NewMap[*int64]()
 	var tmp map[string]int64
 	if err = json.Unmarshal(data, &tmp); err != nil {
-		return structure.NewMap[*int64]()
+		return geoStat
 	}
 	for k, v := range tmp {
 		geoStat.Put(k, &v)
@@ -46,7 +46,7 @@ func SaveGeoStat() {
 	}
 	geoStatByte, err := C().Get(GeoSet)
 	if err != nil {
-		log.ErrorF("Get GeoSet1 failed: %v\n", err)
+		log.ErrorF("Get GeoSet failed: %v\n", err)
 		return
 	}
 	_ = os.WriteFile(cfg.Stat.GeoFile, geoStatByte, os.ModePerm)
@@ -71,6 +71,10 @@ func syncGEOStat() {
 
 // AddGeo 使用协程处理 减少耗时
 func AddGeo(addr string) {
+	cfg := config.Get()
+	if !cfg.Stat.EnableStat {
+		return
+	}
 	ip, _, err := net.SplitHostPort(addr)
 	if err != nil {
 		return

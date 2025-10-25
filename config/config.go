@@ -302,13 +302,15 @@ type ModuleConfig struct {
 }
 
 type StatConfig struct {
-	Enabled      bool   `yaml:"enabled" json:"enabled"`
+	Enabled      bool   `yaml:"enabled" json:"enabled"` // 是否开启服务器 不开启服务器也会统计
 	Host         string `yaml:"host" json:"host"`
 	Port         int    `yaml:"port" json:"port"`
+	EnableStat   bool   `yaml:"enable_stat" json:"enable_stat"` // 开启统计
 	SyncDuration int    `yaml:"sync_duration" json:"sync_duration"`
 	SaveDuration int    `yaml:"save_duration" json:"save_duration"`
 	SaveFile     string `json:"save_file"`
 	GeoFile      string `json:"geo_file"`
+	DomainFile   string `json:"domain_file"`
 	GeoDB        string `json:"geo_db"` // geo数据库
 }
 

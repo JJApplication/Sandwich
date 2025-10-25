@@ -7,8 +7,11 @@ import (
 )
 
 func InitStatSyncer() {
-	initCacheFromFile()
 	cfg := config.Get()
+	if !cfg.Stat.EnableStat {
+		return
+	}
+	initCacheFromFile()
 	du := cfg.Stat.SyncDuration
 	if du == 0 {
 		du = 60
@@ -26,6 +29,7 @@ func InitStatSyncer() {
 			log.Info("running stat syncer")
 			go syncStat()
 			go syncGEOStat()
+			go syncDomainStat()
 		}
 	}()
 
@@ -36,6 +40,7 @@ func InitStatSyncer() {
 			log.Info("save stat to file")
 			go SaveStat(cfg.Stat.SaveFile)
 			go SaveGeoStat()
+			go SaveDomainStat()
 		}
 	}()
 }

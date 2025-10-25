@@ -18,6 +18,9 @@ var (
 
 	// geo数据
 	geoIp *structure.Map[*int64] // 地区请求
+
+	// 网站访问数据
+	domainStat *structure.Map[*int64]
 )
 
 func C() *bigcache.BigCache {
@@ -49,4 +52,9 @@ func initCacheFromFile() {
 	go syncStat()
 
 	geoIp = LoadGeoStat()
+	go syncGEOStat()
+
+	// 加载域名统计信息
+	domainStat = LoadDomainStat()
+	go syncDomainStat()
 }

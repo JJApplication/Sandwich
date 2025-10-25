@@ -5,6 +5,7 @@ import (
 	"sandwich/cache"
 	"sandwich/config"
 	"sandwich/constant"
+	"sandwich/stat"
 )
 
 // ResolveSrv 为修改响应头识别请求的服务是否属于后端
@@ -14,6 +15,7 @@ func ResolveSrv(r *http.Request) int {
 
 func resolveType(req *http.Request) int {
 	host := req.Host
+	stat.AddDomainStat(host)
 	app, ok := cache.AppDomainMap.Get(host)
 	if !ok {
 		return constant.Frontend

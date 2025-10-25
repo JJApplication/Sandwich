@@ -177,10 +177,11 @@
     "enabled": true,
     "host": "0.0.0.0",
     "port": 8888,
-    "sync_duration": 3600,
+    "sync_duration": 120,
     "save_duration": 7200,
-    "save_file": "stat.json",
-    "geo_file": "geo.json"
+    "save_file": "data/stat.json",
+    "geo_file": "data/geo.json",
+    "domain_file": "data/domain.json"
   },
   "debug": false,
   "domain_map": "domain.json",
