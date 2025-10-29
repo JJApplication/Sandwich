@@ -192,6 +192,7 @@ type FeatureConfig struct {
 	NoCache      bool            `yaml:"no_cache" json:"no_cache"`
 	SecureHeader bool            `yaml:"secure_header" json:"secure_header"` // 安全响应头
 	Trace        TraceConfig     `yaml:"trace" json:"trace"`                 // 请求跟踪
+	AutoCert     AutoCertConfig  `yaml:"auto_cert" json:"auto_cert"`         // 自动证书配置
 }
 
 // HTTP3Config HTTP/3协议配置结构体
@@ -230,6 +231,12 @@ type CacheConfig struct {
 type TraceConfig struct {
 	Enabled bool   `yaml:"enabled" json:"enabled"`
 	TraceId string `yaml:"trace_id" json:"trace_id"`
+}
+
+// AutoCertConfig 自动证书配置结构体
+type AutoCertConfig struct {
+	Email   string   `yaml:"email" json:"email"`     // 注册邮箱
+	Domains []string `yaml:"domains" json:"domains"` // 域名列表
 }
 
 // DatabaseConfig 数据库配置结构体

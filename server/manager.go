@@ -8,12 +8,15 @@ import (
 	"net"
 	"net/http"
 	"reflect"
+	autocert2 "sandwich/autocert"
 	"strings"
 	"sync"
 	"time"
 
 	"sandwich/config"
 	"sandwich/log"
+
+	"golang.org/x/crypto/acme/autocert"
 )
 
 // limitedReader 用于限制请求体读取，超出限制时直接拒绝
@@ -58,6 +61,12 @@ type Manager struct {
 	wg      sync.WaitGroup             // 等待组
 	started bool                       // 是否已启动
 	logger  *log.Log                   // 日志记录器
+
+	// AutoTLS
+	acmeMgr            *autocert.Manager // autocert 管理器
+	acmeMU             sync.Mutex        // 刷新证书过程的互斥锁，避免并发冲突
+	autoCertTempServer *http.Server      // 刷新证书时临时占用80端口的HTTP服务器
+	stoppedHTTP80      *ServerInstance   // 刷新前被停止的80端口HTTP服务器，用于刷新后恢复
 }
 
 // ServerInstance 服务器实例
@@ -288,8 +297,55 @@ func (m *Manager) configureTLS(instance *ServerInstance) error {
 	}
 
 	if tlsConfig.AutoTLS {
-		// TODO: 实现自动 TLS (Let's Encrypt)
-		return fmt.Errorf("自动 TLS 功能尚未实现")
+		// 使用 autocert 自动管理证书，返回用于标准 http.Server 的 *tls.Config
+		// 构建域名白名单（必须提供域名，否则不可启动AutoTLS）
+		domains := config.GetTlsDomains(m.config)
+		if len(domains) == 0 {
+			return fmt.Errorf("自动TLS已启用但未配置任何域名，无法申请证书")
+		}
+
+		// 初始化或复用 autocert 管理器
+		if m.acmeMgr == nil {
+			m.acmeMgr = autocert2.NewCertManager(domains, m.config.Features.AutoCert.Email)
+		}
+
+		// 基础TLS配置来自autocert
+		base := m.acmeMgr.TLSConfig()
+		// 包装 GetCertificate，在每次自动刷新前释放80端口并启用挑战处理，刷新后恢复
+		origGetCert := base.GetCertificate
+		base.GetCertificate = func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
+			m.acmeMU.Lock()
+			defer m.acmeMU.Unlock()
+
+			m.logger.InfoF("AutoTLS: 即将获取/刷新证书，域名: %s，准备处理80端口\n", hello.ServerName)
+			if err := m.beforeHandleAutoCert(); err != nil {
+				m.logger.ErrorF("AutoTLS: beforeHandleAutoCert 失败: %v\n", err)
+			}
+
+			cert, err := origGetCert(hello)
+
+			if err2 := m.afterHandleAutoCert(); err2 != nil {
+				m.logger.ErrorF("AutoTLS: afterHandleAutoCert 失败: %v\n", err2)
+			}
+
+			if err != nil {
+				m.logger.ErrorF("AutoTLS: 获取证书失败: %v\n", err)
+			} else {
+				m.logger.InfoF("AutoTLS: 证书获取/刷新完成，域名: %s\n", hello.ServerName)
+			}
+
+			return cert, err
+		}
+
+		// 强化TLS安全参数
+		base.MinVersion = tls.VersionTLS12
+		base.PreferServerCipherSuites = true
+
+		// 应用 TLS 配置
+		instance.Server.TLSConfig = base
+		instance.Listener = tls.NewListener(instance.Listener, base)
+
+		return nil
 	}
 
 	// 加载证书和私钥
@@ -311,6 +367,81 @@ func (m *Manager) configureTLS(instance *ServerInstance) error {
 	instance.Server.TLSConfig = tlsCfg
 	instance.Listener = tls.NewListener(instance.Listener, tlsCfg)
 
+	return nil
+}
+
+// beforeHandleAutoCert 在autocert发起证书申请/刷新前，确保80端口可用于HTTP-01挑战
+func (m *Manager) beforeHandleAutoCert() error {
+	// 查找当前占用80端口的HTTP服务器
+	var http80 *ServerInstance
+	m.mu.RLock()
+	for _, inst := range m.servers {
+		if inst.Config.Protocol == "http" && inst.Config.Port == 80 && inst.Started {
+			http80 = inst
+			break
+		}
+	}
+	m.mu.RUnlock()
+
+	// 如有占用则先停止
+	if http80 != nil {
+		m.logger.InfoF("AutoTLS: 检测到80端口被服务器 '%s' 占用，先停止该HTTP服务器\n", http80.Name)
+		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+		if err := http80.Server.Shutdown(ctx); err != nil {
+			m.logger.ErrorF("AutoTLS: 停止80端口HTTP服务器失败: %v\n", err)
+		}
+		m.stoppedHTTP80 = http80
+		// 从映射移除，避免状态混淆
+		m.mu.Lock()
+		delete(m.servers, http80.Name)
+		m.mu.Unlock()
+	}
+
+	// 启动临时挑战服务器，监听80端口，仅用于处理 /.well-known/acme-challenge/
+	addr := fmt.Sprintf("0.0.0.0:%d", 80)
+	ln, err := net.Listen("tcp", addr)
+	if err != nil {
+		return fmt.Errorf("AutoTLS: 创建80端口挑战监听失败: %v", err)
+	}
+
+	tempSrv := &http.Server{
+		Addr:              addr,
+		Handler:           m.acmeMgr.HTTPHandler(nil),
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      10 * time.Second,
+		IdleTimeout:       15 * time.Second,
+		ReadHeaderTimeout: 5 * time.Second,
+	}
+	m.autoCertTempServer = tempSrv
+	go func() {
+		if err := tempSrv.Serve(ln); err != nil && err != http.ErrServerClosed {
+			m.logger.ErrorF("AutoTLS: 挑战服务器运行错误: %v\n", err)
+		}
+	}()
+	m.logger.InfoF("AutoTLS: 临时挑战服务器已在 %s 开启\n", addr)
+	return nil
+}
+
+// afterHandleAutoCert 在证书申请/刷新完成后，关闭挑战服务器并恢复原80端口HTTP服务
+func (m *Manager) afterHandleAutoCert() error {
+	// 关闭临时挑战服务器
+	if m.autoCertTempServer != nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		_ = m.autoCertTempServer.Shutdown(ctx)
+		m.autoCertTempServer = nil
+		m.logger.Info("AutoTLS: 临时挑战服务器已关闭")
+	}
+
+	// 恢复原HTTP服务器（如存在）
+	if m.stoppedHTTP80 != nil {
+		m.logger.InfoF("AutoTLS: 重新启动原HTTP服务器 '%s' (80端口)\n", m.stoppedHTTP80.Name)
+		if err := m.startServer(m.stoppedHTTP80.Config); err != nil {
+			m.logger.ErrorF("AutoTLS: 重启80端口HTTP服务器失败: %v\n", err)
+		}
+		m.stoppedHTTP80 = nil
+	}
 	return nil
 }
 

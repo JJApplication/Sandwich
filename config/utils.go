@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 	"sandwich/json"
+	"sandwich/structure"
 	"strconv"
 	"strings"
 )
@@ -427,18 +428,37 @@ func compareValues(oldVal, newVal reflect.Value, path string, diff map[string]in
 	}
 }
 
-// GetDomains 使用Set存储域名列表
-func GetDomains(config *Config) []string {
-	var domains []string
+// 获取sever和autoCert配置中的ssl域名 取交集
+func GetTlsDomains(config *Config) []string {
+	domains := structure.NewSet[string]()
 	for _, serverConfig := range config.Servers {
-		for _, domainConfig := range serverConfig.DomainConfig {
-			for _, domain := range domainConfig.Domains {
-				domains = append(domains, domain)
+		if serverConfig.TLS != nil || serverConfig.Protocol == "https" {
+			for _, domainConfig := range serverConfig.DomainConfig {
+				for _, domain := range domainConfig.Domains {
+					domains.Add(domain)
+				}
 			}
 		}
 	}
 
-	return domains
+	if len(config.Features.AutoCert.Domains) > 0 {
+		return config.Features.AutoCert.Domains
+	}
+	return domains.List()
+}
+
+// GetDomains 使用Set存储域名列表
+func GetDomains(config *Config) []string {
+	domains := structure.NewSet[string]()
+	for _, serverConfig := range config.Servers {
+		for _, domainConfig := range serverConfig.DomainConfig {
+			for _, domain := range domainConfig.Domains {
+				domains.Add(domain)
+			}
+		}
+	}
+
+	return domains.List()
 }
 
 func GetWsPort(config *Config) string {
