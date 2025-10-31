@@ -12,6 +12,7 @@ import (
 	"sandwich/cache"
 	"sandwich/config"
 	"sandwich/constant"
+	"sandwich/grpc_proxy"
 	"sandwich/log"
 	"sandwich/modifier"
 	"sandwich/prehandler"
@@ -32,25 +33,6 @@ var (
 	sharedTransport *sandwichTransport
 	transportOnce   sync.Once
 )
-
-type sandwichTransport struct {
-	Transport http.RoundTripper
-}
-
-func (t *sandwichTransport) RoundTrip(req *http.Request) (*http.Response, error) {
-	if config.Debug {
-		start := time.Now()
-		resp, err := t.Transport.RoundTrip(req)
-
-		if config.Debug {
-			utils.PerformCalc(start)
-		}
-
-		return resp, err
-	}
-
-	return t.Transport.RoundTrip(req)
-}
 
 // getOptimizedTransport 获取优化的HTTP传输层配置
 func getOptimizedTransport() *sandwichTransport {
@@ -117,9 +99,21 @@ func newProxy() *httputil.ReverseProxy {
 			stat.AddGeo(request.RemoteAddr)
 			if !prehandler.ValidateDomain(request) {
 				request.Header.Set(serror.SandwichInternalFlag, serror.SandwichDomainNotAllow)
-				request.URL = &url.URL{Scheme: constant.Sandwich}
+				request.URL = &url.URL{Scheme: constant.SchemeSandwich}
 				return
 			}
+
+			// 检查是否为gRPC代理请求
+			if grpc_proxy.IsEnabled() {
+				proxy := grpc_proxy.GetGrpcProxy()
+				if proxy != nil && proxy.IsGrpcRequest(request) {
+					log.DebugF("detected gRPC proxy request")
+					// 设置特殊的scheme来标识gRPC请求，后续在Transport中处理
+					request.URL = &url.URL{Scheme: constant.SchemeGrpc}
+					return
+				}
+			}
+
 			request.URL = ParseRequest(request)
 			log.DebugF("parse request, URL: %#v\n", request.URL)
 		},

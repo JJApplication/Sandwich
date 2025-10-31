@@ -12,6 +12,7 @@ import (
 	"os"
 	"sandwich/config"
 	"sandwich/constant"
+	"strings"
 )
 
 const (
@@ -116,7 +117,7 @@ func (l *Log) doF(level int, fmt string, v ...interface{}) {
 		return
 	}
 	coloredLevel := l.getColoredLevel(level)
-	f := coloredLevel + " " + fmt
+	f := coloredLevel + " " + l.betterFmt(fmt)
 	l.gl.Printf(f, v...)
 }
 
@@ -177,6 +178,13 @@ func (l *Log) shouldLog(level int) bool {
 	return myLevel >= level
 }
 
+func (l *Log) betterFmt(fmt string) string {
+	if strings.HasSuffix(fmt, "\n") {
+		return fmt
+	}
+	return fmt + "\n"
+}
+
 func Println(v ...interface{}) {
 	logger.Println(v...)
 }
@@ -199,6 +207,14 @@ func Error(v ...interface{}) {
 
 func ErrorF(format string, args ...interface{}) {
 	logger.ErrorF(format, args...)
+}
+
+func Warn(v ...interface{}) {
+	logger.Warn(v...)
+}
+
+func WarnF(format string, args ...interface{}) {
+	logger.WarnF(format, args...)
 }
 
 func DebugF(fmt string, v ...interface{}) {

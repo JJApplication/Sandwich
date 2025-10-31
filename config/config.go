@@ -193,6 +193,7 @@ type FeatureConfig struct {
 	SecureHeader bool            `yaml:"secure_header" json:"secure_header"` // 安全响应头
 	Trace        TraceConfig     `yaml:"trace" json:"trace"`                 // 请求跟踪
 	AutoCert     AutoCertConfig  `yaml:"auto_cert" json:"auto_cert"`         // 自动证书配置
+	GrpcProxy    GrpcProxyConfig `yaml:"grpc_proxy" json:"grpc_proxy"`       // gRPC代理配置
 }
 
 // HTTP3Config HTTP/3协议配置结构体
@@ -237,6 +238,13 @@ type TraceConfig struct {
 type AutoCertConfig struct {
 	Email   string   `yaml:"email" json:"email"`     // 注册邮箱
 	Domains []string `yaml:"domains" json:"domains"` // 域名列表
+}
+
+type GrpcProxyConfig struct {
+	Enabled    bool     `yaml:"enabled" json:"enabled"`         // 是否启用gRPC代理
+	Hosts      []string `yaml:"hosts" json:"hosts"`             // 目标gRPC主机列表
+	GrpcHeader string   `yaml:"grpc_header" json:"grpc_header"` // gRPC识别请求头
+	GrpcAddr   string   `yaml:"grpc_addr" json:"grpc_addr"`     // 目标gRPC地址
 }
 
 // DatabaseConfig 数据库配置结构体

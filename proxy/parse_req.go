@@ -27,7 +27,7 @@ func ParseRequest(req *http.Request) *url.URL {
 		data.AddInfluxData(req, data.StatBreak)
 		req.Header.Set(serror.SandwichInternalFlag, serror.SandwichBucketLimit)
 		log.DebugF("host: %s, client %s has been rate limited because of breakdown", host, req.RemoteAddr)
-		return &url.URL{Scheme: constant.Sandwich}
+		return &url.URL{Scheme: constant.SchemeSandwich}
 	}
 
 	// 新的流控检查
@@ -45,7 +45,7 @@ func ParseRequest(req *http.Request) *url.URL {
 			data.AddInfluxData(req, data.StatAbort)
 			log.DebugF("client %s has been rate limited: %s", req.RemoteAddr, result.Reason)
 			req.Header.Set(serror.SandwichInternalFlag, serror.SandwichReqLimit)
-			return &url.URL{Scheme: constant.Sandwich}
+			return &url.URL{Scheme: constant.SchemeSandwich}
 		} else {
 			// 记录通过的请求（如果启用）
 			flowRecorder := flow.GetFlowRecorder()
