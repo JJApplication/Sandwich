@@ -2,10 +2,11 @@ package stat
 
 import (
 	"context"
-	"github.com/allegro/bigcache/v3"
 	"sandwich/structure"
 	"sync/atomic"
 	"time"
+
+	"github.com/allegro/bigcache/v3"
 )
 
 var (
@@ -29,10 +30,10 @@ func C() *bigcache.BigCache {
 
 func init() {
 	cache, _ := bigcache.New(context.Background(), bigcache.Config{
-		Shards:             1024,
+		Shards:             64,
 		LifeWindow:         48 * time.Hour,
 		CleanWindow:        30 * time.Minute,
-		MaxEntriesInWindow: 1024 * 1024,
+		MaxEntriesInWindow: 256,
 		MaxEntrySize:       1024,
 	})
 
