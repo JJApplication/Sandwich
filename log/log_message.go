@@ -3,7 +3,7 @@ Project: Sandwich log_message.go
 Created: 2024/01/01 by Assistant
 */
 
-package structure
+package log
 
 import (
 	"time"

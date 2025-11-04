@@ -124,9 +124,9 @@ func (l *Log) do(level int, v ...interface{}) {
 	if !l.shouldLog(level) {
 		return
 	}
-	
+
 	// 创建日志消息并加入队列
-	msg := structure.NewLogMessage(level, "", v)
+	msg := NewLogMessage(level, "", v)
 	l.enqueueLogMessage(msg)
 }
 
@@ -134,9 +134,9 @@ func (l *Log) doF(level int, fmt string, v ...interface{}) {
 	if !l.shouldLog(level) {
 		return
 	}
-	
+
 	// 创建格式化日志消息并加入队列
-	msg := structure.NewLogMessageF(level, fmt, v)
+	msg := NewLogMessageF(level, fmt, v)
 	l.enqueueLogMessage(msg)
 }
 
@@ -287,7 +287,7 @@ func (l *Log) initQueue() {
 // processLogQueue 异步处理日志队列中的消息
 func (l *Log) processLogQueue() {
 	defer l.wg.Done()
-	
+
 	for {
 		select {
 		case <-l.stopChan:
@@ -301,10 +301,10 @@ func (l *Log) processLogQueue() {
 				l.flushQueue()
 				return
 			}
-			
+
 			// 从队列中取出日志消息并处理
 			if msg := l.queue.DequeueBlocking(100 * time.Millisecond); msg != nil {
-				if logMsg, ok := msg.(*structure.LogMessage); ok {
+				if logMsg, ok := msg.(*LogMessage); ok {
 					l.processLogMessage(logMsg)
 				}
 			}
@@ -313,13 +313,13 @@ func (l *Log) processLogQueue() {
 }
 
 // processLogMessage 处理单个日志消息
-func (l *Log) processLogMessage(msg *structure.LogMessage) {
+func (l *Log) processLogMessage(msg *LogMessage) {
 	if !l.shouldLog(msg.Level) {
 		return
 	}
-	
+
 	coloredLevel := l.getColoredLevel(msg.Level)
-	
+
 	if msg.IsFormat {
 		// 格式化日志
 		format := coloredLevel + " " + l.betterFmt(msg.Format)
@@ -336,10 +336,10 @@ func (l *Log) flushQueue() {
 	if l.queue == nil {
 		return
 	}
-	
+
 	for !l.queue.IsEmpty() {
 		if msg := l.queue.Dequeue(); msg != nil {
-			if logMsg, ok := msg.(*structure.LogMessage); ok {
+			if logMsg, ok := msg.(*LogMessage); ok {
 				l.processLogMessage(logMsg)
 			}
 		}
@@ -347,13 +347,13 @@ func (l *Log) flushQueue() {
 }
 
 // enqueueLogMessage 将日志消息加入队列
-func (l *Log) enqueueLogMessage(msg *structure.LogMessage) {
+func (l *Log) enqueueLogMessage(msg *LogMessage) {
 	if !l.asyncEnabled || l.queue == nil {
 		// 如果异步未启用，直接同步处理
 		l.processLogMessage(msg)
 		return
 	}
-	
+
 	// 尝试加入队列，如果队列满了则直接输出（防止阻塞）
 	if !l.queue.Enqueue(msg) {
 		// 队列满了，直接同步输出
@@ -366,7 +366,7 @@ func (l *Log) SetAsyncEnabled(enabled bool) {
 	if l.asyncEnabled == enabled {
 		return
 	}
-	
+
 	if l.asyncEnabled && !enabled {
 		// 关闭异步模式 - 先关闭队列，然后等待goroutine结束
 		if l.queue != nil {
@@ -377,7 +377,7 @@ func (l *Log) SetAsyncEnabled(enabled bool) {
 		}
 		l.wg.Wait()
 	}
-	
+
 	l.asyncEnabled = enabled
 	if enabled {
 		l.stopChan = make(chan struct{})
@@ -390,7 +390,7 @@ func (l *Log) SetQueueSize(size int) {
 	if l.queueSize == size {
 		return
 	}
-	
+
 	wasAsync := l.asyncEnabled
 	if wasAsync {
 		// 优雅关闭异步模式 - 先关闭队列，然后等待goroutine结束
@@ -402,7 +402,7 @@ func (l *Log) SetQueueSize(size int) {
 		}
 		l.wg.Wait()
 	}
-	
+
 	l.queueSize = size
 	if wasAsync {
 		l.asyncEnabled = true
