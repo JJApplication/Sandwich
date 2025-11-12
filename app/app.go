@@ -16,6 +16,8 @@ import (
 	"sandwich/proxy"
 	"sandwich/server"
 	"sandwich/stat"
+	"sandwich/stat/db"
+	seq "sandwich/stat/sequence"
 	"sandwich/utils"
 	"strings"
 )
@@ -124,6 +126,10 @@ func (app *Application) loadConfig(configPath string) error {
 
 // initializeComponents 初始化组件
 func (app *Application) initializeComponents() error {
+	// 初始化数据库
+	db.Init(app.config)
+	// 初始化Sequence时序
+	seq.InitSequenceManager(app.config, db.GetDB())
 	// 初始化特性组件
 	modifier.InitModifiers()
 	// 创建原始代理处理器（复用现有的 proxy.go 逻辑）

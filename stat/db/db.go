@@ -1,0 +1,55 @@
+package db
+
+import (
+	"sync"
+	"time"
+
+	"sandwich/config"
+	"sandwich/log"
+
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
+)
+
+var (
+	db       *gorm.DB
+	initOnce sync.Once
+	mu       sync.Mutex
+	enabled  bool
+	interval time.Duration
+)
+
+// Init 初始化时序统计模块，从配置加载并连接数据库
+// 成功后根据配置设置启用状态与时间间隔
+func Init(cfg *config.Config) error {
+	enabled = cfg.Stat.UseDB
+	if !enabled || cfg.Stat.DBFile == "" {
+		return nil
+	}
+
+	var err error
+	db, err = gorm.Open(sqlite.Open(cfg.Stat.DBFile), &gorm.Config{})
+	if err != nil {
+		log.ErrorF("打开数据库失败: %v\n", err)
+		return err
+	}
+	return nil
+}
+
+// EnsureTable 保证当前间隔表已创建
+func EnsureTable(table string, dst interface{}) {
+	mu.Lock()
+	defer mu.Unlock()
+	// 存在则跳过
+	if db.Migrator().HasTable(table) {
+		return
+	}
+	if err := db.Table(table).AutoMigrate(dst); err != nil {
+		log.ErrorF("创建表失败 %s: %v\n", table, err)
+		return
+	}
+}
+
+func GetDB() *gorm.DB {
+	return db
+}

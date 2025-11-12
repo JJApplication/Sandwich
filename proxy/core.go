@@ -18,6 +18,7 @@ import (
 	"sandwich/prehandler"
 	"sandwich/serror"
 	"sandwich/stat"
+	seq "sandwich/stat/sequence"
 	"sandwich/utils"
 	"sync"
 	"time"
@@ -101,6 +102,15 @@ func newProxy() *httputil.ReverseProxy {
 				request.Header.Set(serror.SandwichInternalFlag, serror.SandwichDomainNotAllow)
 				request.URL = &url.URL{Scheme: constant.SchemeSandwich}
 				return
+			}
+
+			// 记录时序数据（域名、路径、方法）
+			if seq.SeqMgt().IsEnabled() {
+				path := request.URL.Path
+				if path == "" {
+					path = "/"
+				}
+				seq.SeqMgt().RecordRequest(request.Host, path, request.Method)
 			}
 
 			// 检查是否为gRPC代理请求

@@ -2,6 +2,7 @@ package stat
 
 import (
 	"context"
+	"sandwich/stat/db"
 	"sandwich/structure"
 	"sync/atomic"
 	"time"
@@ -41,6 +42,10 @@ func init() {
 }
 
 func initCacheFromFile() {
+	// 初始化数据库
+	db.GetDB().AutoMigrate(&StatModel{})
+	db.GetDB().AutoMigrate(&GeoModel{})
+	db.GetDB().AutoMigrate(&DomainModel{})
 	m := LoadStat()
 	if m != nil {
 		atomic.StoreInt64(&total, m.MustGet("total"))

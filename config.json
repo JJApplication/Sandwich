@@ -14,24 +14,6 @@
           "auto_redirect": true
         }
       ]
-    },
-    {
-      "name": "https",
-      "host": "0.0.0.0",
-      "port": 443,
-      "use_http2": true,
-      "protocol": "https",
-      "enabled": true,
-      "tls": {
-        "cert_file": "/renj.io/ssl/fullchain.cer",
-        "key_file": "/renj.io/ssl/ssl.key",
-        "auto_tls": false
-      },
-      "domains": [
-        {
-          "domains": ["renj.io", "service.renj.io"]
-        }
-      ]
     }
   ],
   "middleware": [
@@ -174,7 +156,10 @@
     "Proxy-Server": "Sandwich"
   },
   "stat": {
+    "use_db": true,
+    "db_file": "stat.db",
     "enabled": true,
+    "enable_stat": true,
     "host": "0.0.0.0",
     "port": 8888,
     "sync_duration": 120,

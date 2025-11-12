@@ -38,7 +38,7 @@ func InitStatSyncer() {
 		defer ticker.Stop()
 		for range ticker.C {
 			log.Info("save stat to file")
-			go SaveStat(cfg.Stat.SaveFile)
+			go SaveStat(cfg)
 			go SaveGeoStat()
 			go SaveDomainStat()
 		}

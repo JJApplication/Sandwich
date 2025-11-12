@@ -1,51 +1,15 @@
 package stat
 
 import (
-	"os"
 	"sandwich/config"
 	"sandwich/json"
 	"sandwich/log"
-	"sandwich/structure"
 	"sync/atomic"
 )
 
 const (
 	DomainStat = "domain"
 )
-
-func LoadDomainStat() *structure.Map[*int64] {
-	m := structure.NewMap[*int64]()
-	cfg := config.Get()
-
-	data, err := os.ReadFile(cfg.Stat.DomainFile)
-	if err != nil {
-		return m
-	}
-	var res map[string]int64
-	if err = json.Unmarshal(data, &res); err != nil {
-		return m
-	}
-	for k, v := range res {
-		m.Put(k, &v)
-	}
-
-	return m
-}
-
-func SaveDomainStat() {
-	cfg := config.Get()
-	if _, err := os.Stat(cfg.Stat.DomainFile); os.IsNotExist(err) {
-		// 创建文件
-		data, _ := json.Marshal(map[string]int64{})
-		_ = os.WriteFile(cfg.Stat.GeoFile, data, os.ModePerm)
-	}
-	domainStatByte, err := C().Get(DomainStat)
-	if err != nil {
-		log.ErrorF("Get DomainStat failed: %v\n", err)
-		return
-	}
-	_ = os.WriteFile(cfg.Stat.DomainFile, domainStatByte, os.ModePerm)
-}
 
 func AddDomainStat(domain string) {
 	cfg := config.Get()

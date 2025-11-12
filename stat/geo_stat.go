@@ -2,12 +2,10 @@ package stat
 
 import (
 	"net"
-	"os"
 	"sandwich/config"
 	geo2 "sandwich/geo"
 	"sandwich/json"
 	"sandwich/log"
-	"sandwich/structure"
 	"sync/atomic"
 )
 
@@ -16,41 +14,6 @@ import (
 const (
 	GeoSet = "ip2country"
 )
-
-func LoadGeoStat() *structure.Map[*int64] {
-	var geoStat = structure.NewMap[*int64]()
-	cfg := config.Get()
-
-	data, err := os.ReadFile(cfg.Stat.GeoFile)
-	if err != nil {
-		return geoStat
-	}
-
-	var tmp map[string]int64
-	if err = json.Unmarshal(data, &tmp); err != nil {
-		return geoStat
-	}
-	for k, v := range tmp {
-		geoStat.Put(k, &v)
-	}
-
-	return geoStat
-}
-
-func SaveGeoStat() {
-	cfg := config.Get()
-	if _, err := os.Stat(cfg.Stat.GeoFile); os.IsNotExist(err) {
-		// 创建文件
-		data, _ := json.Marshal(map[string]int64{})
-		_ = os.WriteFile(cfg.Stat.GeoFile, data, os.ModePerm)
-	}
-	geoStatByte, err := C().Get(GeoSet)
-	if err != nil {
-		log.ErrorF("Get GeoSet failed: %v\n", err)
-		return
-	}
-	_ = os.WriteFile(cfg.Stat.GeoFile, geoStatByte, os.ModePerm)
-}
 
 // 同步数据到缓存中
 func syncGEOStat() {
