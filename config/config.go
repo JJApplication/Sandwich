@@ -41,8 +41,11 @@ type Config struct {
 }
 
 type ProxyConfig struct {
-	FlushInterval int64 `yaml:"flush_interval" json:"flush_interval"`
-	BufSize       int   `yaml:"buf_size" json:"buf_size"`
+	FlushInterval   int64  `yaml:"flush_interval" json:"flush_interval"`
+	BufSize         int    `yaml:"buf_size" json:"buf_size"`
+	Transport       string `yaml:"transport" json:"transport"`                   // 传统 | fast
+	MaxConnsPerHost int    `yaml:"max_conns_per_host" json:"max_conns_per_host"` // 每个主机最大连接数
+	IdleConnTimeout int    `yaml:"idle_conn_timeout" json:"idle_conn_timeout"`   // 空闲连接超时
 }
 
 // ServerConfig 服务器配置结构体

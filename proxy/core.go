@@ -36,25 +36,21 @@ var (
 )
 
 // getOptimizedTransport 获取优化的HTTP传输层配置
-func getOptimizedTransport() *sandwichTransport {
+func getOptimizedTransport(transport string) *sandwichTransport {
 	transportOnce.Do(func() {
-		sharedTransport = &sandwichTransport{
-			Transport: &http.Transport{
-				// 连接池配置
-				MaxIdleConns:        100,              // 最大空闲连接数
-				MaxIdleConnsPerHost: 20,               // 每个主机最大空闲连接数
-				MaxConnsPerHost:     50,               // 每个主机最大连接数
-				IdleConnTimeout:     90 * time.Second, // 空闲连接超时
-				// 超时配置
-				ResponseHeaderTimeout: 30 * time.Second, // 响应头超时
-				ExpectContinueTimeout: 1 * time.Second,  // 100-continue超时
-				// 启用TCP keep-alive
-				DisableKeepAlives: false,
-				// 启用HTTP/2支持
-				ForceAttemptHTTP2: true,
-				// 禁用压缩以减少CPU开销（如果不需要）
-				DisableCompression: false,
-			},
+		switch transport {
+		case "http":
+			sharedTransport = &sandwichTransport{
+				Transport: OriginRoundTrip(),
+			}
+		case "fasthttp":
+			sharedTransport = &sandwichTransport{
+				Transport: NewFastRoundTripper(),
+			}
+		default:
+			sharedTransport = &sandwichTransport{
+				Transport: OriginRoundTrip(),
+			}
 		}
 	})
 	return sharedTransport
@@ -96,6 +92,7 @@ func newProxy() *httputil.ReverseProxy {
 			log.DebugF("parse request Header: %#v\n", request.Header)
 			log.DebugF("parse request Host: %#v\n", request.Host)
 			log.DebugF("parse request Trace-Id: %s\n", request.Header.Get(cfg.ProxyHeader.TraceId))
+			// 转发前安全清理敏感请求头
 			stat.Add(stat.Total)
 			stat.AddGeo(request.RemoteAddr)
 			if !prehandler.ValidateDomain(request) {
@@ -127,7 +124,7 @@ func newProxy() *httputil.ReverseProxy {
 			request.URL = ParseRequest(request)
 			log.DebugF("parse request, URL: %#v\n", request.URL)
 		},
-		Transport:     getOptimizedTransport(),
+		Transport:     getOptimizedTransport(cfg.Proxy.Transport),
 		FlushInterval: time.Duration(utils.DefaultInt64(cfg.Proxy.FlushInterval, FlushInterval)) * time.Millisecond,
 		ErrorLog:      nil,
 		BufferPool:    getBufferPool(utils.DefaultInt(cfg.Proxy.BufSize, BufferSize)),
