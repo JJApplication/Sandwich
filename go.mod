@@ -16,6 +16,7 @@ require (
 	github.com/olekukonko/tablewriter v1.0.9
 	github.com/oschwald/maxminddb-golang/v2 v2.0.0-beta.10
 	github.com/quic-go/quic-go v0.54.0
+	github.com/valyala/fasthttp v1.52.0
 	go.mongodb.org/mongo-driver v1.7.0
 	golang.org/x/crypto v0.43.0
 	google.golang.org/grpc v1.74.2
@@ -51,7 +52,6 @@ require (
 	github.com/rivo/uniseg v0.2.0 // indirect
 	github.com/stretchr/testify v1.10.0 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
-	github.com/valyala/fasthttp v1.52.0 // indirect
 	github.com/xdg-go/pbkdf2 v1.0.0 // indirect
 	github.com/xdg-go/scram v1.0.2 // indirect
 	github.com/xdg-go/stringprep v1.0.2 // indirect

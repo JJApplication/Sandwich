@@ -41,18 +41,23 @@ func AddTrace(response *http.Response, traceHeader string) {
 
 // AddSecureHeader 为响应添加安全头部，防止XSS和CSRF攻击
 func AddSecureHeader(response *http.Response) {
-	// 防止XSS攻击
-	response.Header.Set("X-XSS-Protection", "1; mode=block")
+	cfg := config.Get()
 	response.Header.Set("X-Content-Type-Options", "nosniff")
-	response.Header.Set("X-Frame-Options", "DENY")
+	// 防止XSS攻击
+	if cfg.Security.XssProtection {
+		response.Header.Set("X-XSS-Protection", "1; mode=block")
+	}
+	if cfg.Security.IFrameProtection {
+		response.Header.Set("X-Frame-Options", "DENY")
+	}
 
 	// HTTPS相关安全头部
-	if config.Get().Security.HSTS {
+	if cfg.Security.HSTS {
 		var hstsHeader = "max-age=31536000;"
-		if config.Get().Security.HSTSSubdomain {
+		if cfg.Security.HSTSSubdomain {
 			hstsHeader += "includeSubDomains;"
 		}
-		if config.Get().Security.HSTSPreload {
+		if cfg.Security.HSTSPreload {
 			hstsHeader += "preload"
 		}
 		response.Header.Set("Strict-Transport-Security", hstsHeader)
