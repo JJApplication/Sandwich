@@ -282,17 +282,27 @@ type MonitorConfig struct {
 	Prometheus bool   `yaml:"prometheus" json:"prometheus"` // 是否启用Prometheus
 }
 
+type cors struct {
+	Enabled bool     `yaml:"enabled" json:"enabled"`
+	Method  []string `yaml:"method" json:"method"`
+	Origin  []string `yaml:"origin" json:"origin"` // 默认*
+	Header  []string `yaml:"header" json:"header"`
+}
+
 // SecurityConfig 安全配置结构体
 type SecurityConfig struct {
-	StrictMode       bool     `yaml:"strict_mode" json:"strict_mode"`       // 严格模式
-	HSTS             bool     `yaml:"hsts" json:"hsts"`                     // HSTS策略
-	HSTSSubdomain    bool     `yaml:"hsts_subdomain" json:"hsts_subdomain"` // 包含子域名
-	HSTSPreload      bool     `yaml:"hsts_preload" json:"hsts_preload"`     // 预加载
-	AllowIPs         []string `yaml:"allow_ips" json:"allow_ips"`           // 允许的IP列表
-	DenyIPs          []string `yaml:"deny_ips" json:"deny_ips"`             // 拒绝的IP列表
-	RateLimit        int      `yaml:"rate_limit" json:"rate_limit"`         // 速率限制
-	XssProtection    bool     `yaml:"xss_protection" json:"xss_protection"` // XSS保护
-	IFrameProtection bool     `yaml:"iframe_protection" json:"iframe_protection"`
+	StrictMode bool     `yaml:"strict_mode" json:"strict_mode"` // 严格模式
+	AllowIPs   []string `yaml:"allow_ips" json:"allow_ips"`     // 允许的IP列表
+	DenyIPs    []string `yaml:"deny_ips" json:"deny_ips"`       // 拒绝的IP列表
+	RateLimit  int      `yaml:"rate_limit" json:"rate_limit"`   // 速率限制
+	CORS       cors     `yaml:"cors" json:"cors"`               // cors策略
+
+	HSTS             bool `yaml:"hsts" json:"hsts"`                     // HSTS策略
+	HSTSSubdomain    bool `yaml:"hsts_subdomain" json:"hsts_subdomain"` // 包含子域名
+	HSTSPreload      bool `yaml:"hsts_preload" json:"hsts_preload"`     // 预加载
+	XssProtection    bool `yaml:"xss_protection" json:"xss_protection"` // XSS保护
+	IFrameProtection bool `yaml:"iframe_protection" json:"iframe_protection"`
+	SameSite         bool `yaml:"same_site" json:"same_site"` // 同源策略
 }
 
 type FrontProxyConfig struct {

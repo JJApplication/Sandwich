@@ -61,6 +61,8 @@ func InitModifiers() {
 	m.RegisterModifier(NewCustomHeaderModifier())
 	// 应用gzip压缩中间件
 	m.RegisterModifier(NewGzipModifier())
+	// 应用cors
+	m.RegisterModifier(NewCorsHeaderModifier())
 }
 
 // registerDefaultModifiers 注册默认的修改器
