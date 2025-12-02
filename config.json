@@ -1,4 +1,7 @@
 {
+  "proxy": {
+    "transport": "fasthttp"
+  },
   "servers": [
     {
       "name": "http-server",

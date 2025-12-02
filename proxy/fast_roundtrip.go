@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"io"
 	"net/http"
+	"sandwich/log"
 	"time"
 
 	"github.com/valyala/fasthttp"
@@ -39,12 +40,6 @@ func (f *FastRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) 
 	// 组装目标URI
 	uri := fr.URI()
 	if req.URL != nil {
-		if req.URL.Scheme != "" {
-			uri.SetScheme(req.URL.Scheme)
-		}
-		if req.URL.Host != "" {
-			uri.SetHost(req.URL.Host)
-		}
 		// path+query
 		if req.URL.Opaque != "" {
 			fr.SetRequestURI(req.URL.Opaque)
@@ -60,6 +55,13 @@ func (f *FastRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) 
 				fr.SetRequestURI(path)
 			}
 		}
+
+		if req.URL.Scheme != "" {
+			uri.SetScheme(req.URL.Scheme)
+		}
+		if req.URL.Host != "" {
+			uri.SetHost(req.URL.Host)
+		}
 	}
 
 	// 复制请求头
@@ -68,6 +70,14 @@ func (f *FastRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) 
 			fr.Header.Add(k, v)
 		}
 	}
+
+	// 真实场景下req.HOST为请求域名 req.URL.Host为解析后的真实地址
+	// 确保 Host header 设置正确
+	if req.URL.Host != "" {
+		fr.Header.SetHost(req.URL.Host)
+	}
+
+	log.DebugF("fasthttp client: Host: %s", fr.Host())
 
 	// 复制请求体（尽量流式）
 	if req.Body != nil {
