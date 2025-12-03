@@ -17,6 +17,7 @@ import (
 	"sandwich/log"
 
 	"golang.org/x/crypto/acme/autocert"
+	"golang.org/x/sync/singleflight"
 )
 
 // limitedReader 用于限制请求体读取，超出限制时直接拒绝
@@ -63,10 +64,11 @@ type Manager struct {
 	logger  *log.Log                   // 日志记录器
 
 	// AutoTLS
-	acmeMgr            *autocert.Manager // autocert 管理器
-	acmeMU             sync.Mutex        // 刷新证书过程的互斥锁，避免并发冲突
-	autoCertTempServer *http.Server      // 刷新证书时临时占用80端口的HTTP服务器
-	stoppedHTTP80      *ServerInstance   // 刷新前被停止的80端口HTTP服务器，用于刷新后恢复
+	acmeMgr            *autocert.Manager  // autocert 管理器
+	acmeMU             sync.Mutex         // 刷新证书过程的互斥锁，避免并发冲突
+	autoCertTempServer *http.Server       // 刷新证书时临时占用80端口的HTTP服务器
+	stoppedHTTP80      *ServerInstance    // 刷新前被停止的80端口HTTP服务器，用于刷新后恢复
+	sf                 singleflight.Group // 用于合并并发的证书请求
 }
 
 // ServerInstance 服务器实例
@@ -314,27 +316,36 @@ func (m *Manager) configureTLS(instance *ServerInstance) error {
 		// 包装 GetCertificate，在每次自动刷新前释放80端口并启用挑战处理，刷新后恢复
 		origGetCert := base.GetCertificate
 		base.GetCertificate = func(hello *tls.ClientHelloInfo) (*tls.Certificate, error) {
-			m.acmeMU.Lock()
-			defer m.acmeMU.Unlock()
+			// 使用singleflight合并并发的证书请求
+			// 避免同一域名并发握手时多次触发80端口停止/启动
+			val, err, _ := m.sf.Do("cert:"+hello.ServerName, func() (interface{}, error) {
+				m.acmeMU.Lock()
+				defer m.acmeMU.Unlock()
 
-			m.logger.InfoF("AutoTLS: 即将获取/刷新证书，域名: %s，准备处理80端口\n", hello.ServerName)
-			if err := m.beforeHandleAutoCert(); err != nil {
-				m.logger.ErrorF("AutoTLS: beforeHandleAutoCert 失败: %v\n", err)
-			}
+				m.logger.InfoF("AutoTLS: 即将获取/刷新证书，域名: %s，准备处理80端口\n", hello.ServerName)
+				if err := m.beforeHandleAutoCert(); err != nil {
+					m.logger.ErrorF("AutoTLS: beforeHandleAutoCert 失败: %v\n", err)
+				}
 
-			cert, err := origGetCert(hello)
+				cert, err := origGetCert(hello)
 
-			if err2 := m.afterHandleAutoCert(); err2 != nil {
-				m.logger.ErrorF("AutoTLS: afterHandleAutoCert 失败: %v\n", err2)
-			}
+				if err2 := m.afterHandleAutoCert(); err2 != nil {
+					m.logger.ErrorF("AutoTLS: afterHandleAutoCert 失败: %v\n", err2)
+				}
+
+				if err != nil {
+					m.logger.ErrorF("AutoTLS: 获取证书失败: %v\n", err)
+					return nil, err
+				} else {
+					m.logger.InfoF("AutoTLS: 证书获取/刷新完成，域名: %s\n", hello.ServerName)
+					return cert, nil
+				}
+			})
 
 			if err != nil {
-				m.logger.ErrorF("AutoTLS: 获取证书失败: %v\n", err)
-			} else {
-				m.logger.InfoF("AutoTLS: 证书获取/刷新完成，域名: %s\n", hello.ServerName)
+				return nil, err
 			}
-
-			return cert, err
+			return val.(*tls.Certificate), nil
 		}
 
 		// 强化TLS安全参数

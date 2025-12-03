@@ -17,7 +17,11 @@ import (
 	"sandwich/log"
 	"sandwich/serror"
 	"sandwich/stat"
+
+	"golang.org/x/sync/singleflight"
 )
+
+var resolveSF singleflight.Group
 
 // 后端服务的API转发
 
@@ -37,7 +41,12 @@ func resolveBackend(req *http.Request, fromConf bool) *url.URL {
 		return nil
 	}
 	// 获取后端服务对应的域名
-	proxyApp := cache.GetDomainByApp(app)
+	// 使用singleflight优化高并发下的线性查找
+	val, _, _ := resolveSF.Do("app:"+app, func() (interface{}, error) {
+		return cache.GetDomainByApp(app), nil
+	})
+	proxyApp := val.(string)
+
 	if proxyApp == "" {
 		log.DebugF("proxy -> %s error: app domain is nil", app)
 		req.Header.Set(serror.SandwichInternalFlag, serror.SandwichBackendError)

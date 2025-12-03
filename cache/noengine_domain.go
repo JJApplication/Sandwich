@@ -51,23 +51,19 @@ func loadAppDomainMap() *DomainMap {
 		return nil
 	}
 
-	type tmpDomainMap struct {
-		Domains   []string             `json:"domains"`   // 允许域名
-		DomainMap map[string]domainMap `json:"domainMap"` // 域名映射
-	}
-	var tmp *tmpDomainMap
+	var tmp map[string]domainMap
 	if err = json.Unmarshal(data, &tmp); err != nil {
 		log.ErrorF("AppDomain config parse error:%s\n", err.Error())
 		return nil
 	}
 
 	dmap := structure.NewMap[domainMap]()
-	for key, domain := range tmp.DomainMap {
+	for key, domain := range tmp {
 		dmap.Put(key, domain)
 	}
 
 	return &DomainMap{
-		Domains:   tmp.Domains,
+		Domains:   dmap.Keys(),
 		DomainMap: dmap,
 	}
 }
