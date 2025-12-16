@@ -48,7 +48,7 @@ func resolveBackend(req *http.Request, fromConf bool) *url.URL {
 	proxyApp := val.(string)
 
 	if proxyApp == "" {
-		log.DebugF("proxy -> %s error: app domain is nil", app)
+		log.GetLogger().Debug().Str("app", app).Msg("proxy -> app error: app domain is nil")
 		req.Header.Set(serror.SandwichInternalFlag, serror.SandwichBackendError)
 		return nil
 	}
@@ -56,16 +56,20 @@ func resolveBackend(req *http.Request, fromConf bool) *url.URL {
 	dst := data.DomainReflect(proxyApp)
 	if dst == nil || len(dst) == 0 {
 		data.AddInfluxData(req, data.StatNotFound)
-		log.DebugF("domain reflect failed: [%s]\n", proxyApp)
+		log.GetLogger().Debug().Str("app", proxyApp).Msg("domain reflect failed")
 		req.Header.Set(serror.SandwichInternalFlag, serror.SandwichBackendError)
 		return nil
 	}
 
 	data.AddInfluxData(req, data.StatPass)
-	log.InfoF("request recv| %s |uri: %s|host: %s\n", req.Method, req.RequestURI, proxyApp)
+	log.GetLogger().Info().
+		Str("app", proxyApp).
+		Str("method", req.Method).
+		Str("uri", req.RequestURI).
+		Str("host", host).Msg("proxy request recv")
 	req.URL.Scheme = "http"
 	req.URL.Host = balancer.PickOne(dst)
-	log.DebugF("backend -> [%s] : [%s]\n", app, req.URL.Host)
+	log.GetLogger().Debug().Str("app", proxyApp).Str("Host", req.URL.Host).Msg("proxy -> backend success")
 
 	if req.URL == nil {
 		req.Header.Set(serror.SandwichInternalFlag, serror.SandwichBackendError)

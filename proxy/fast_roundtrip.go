@@ -77,7 +77,7 @@ func (f *FastRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) 
 		fr.Header.SetHost(req.URL.Host)
 	}
 
-	log.DebugF("fasthttp client: Host: %s", fr.Host())
+	log.GetLogger().Debug().Str("Host", string(fr.Host())).Msg("fasthttp client")
 
 	// 复制请求体（尽量流式）
 	if req.Body != nil {

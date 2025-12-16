@@ -54,7 +54,7 @@ func domainFileSaver(cfg *config.Config) {
 	}
 	domainStatByte, err := C().Get(DomainStat)
 	if err != nil {
-		log.ErrorF("Get DomainStat failed: %v\n", err)
+		log.GetLogger().Error().Err(err).Msg("Get DomainStat failed")
 		return
 	}
 	_ = os.WriteFile(cfg.Stat.DomainFile, domainStatByte, os.ModePerm)

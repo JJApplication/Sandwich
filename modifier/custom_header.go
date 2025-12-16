@@ -83,7 +83,7 @@ func (cm *CustomHeaderModifier) UpdateConfig() {
 	// 更新启用状态
 	cm.enabled = len(cm.headers) > 0
 
-	log.DebugF("自定义头配置已更新: enabled=%v, headers=%v", cm.enabled, cm.headers)
+	log.GetLogger().Debug().Bool("enable", cm.enabled).Any("headers", cm.headers).Msg("自定义头配置已更新")
 }
 
 // GetName 获取修改器名称
@@ -106,7 +106,7 @@ func (cm *CustomHeaderModifier) AddHeader(key, value string) {
 		cm.enabled = true
 	}
 
-	log.DebugF("动态添加自定义头: %s = %s", key, value)
+	log.GetLogger().Debug().Str("key", key).Str("val", value).Msg("动态添加自定义头")
 }
 
 // RemoveHeader 动态移除自定义头
@@ -124,7 +124,7 @@ func (cm *CustomHeaderModifier) RemoveHeader(key string) {
 		cm.enabled = false
 	}
 
-	log.DebugF("动态移除自定义头: %s", key)
+	log.GetLogger().Debug().Str("key", key).Msg("动态移除自定义头")
 }
 
 // GetHeaders 获取当前所有自定义头（只读副本）
@@ -155,7 +155,7 @@ func (cm *CustomHeaderModifier) SetHeaders(headers map[string]string) {
 
 	cm.enabled = len(cm.headers) > 0
 
-	log.DebugF("批量设置自定义头: enabled=%v, count=%d", cm.enabled, len(cm.headers))
+	log.GetLogger().Debug().Bool("enable", cm.enabled).Int("headers", len(cm.headers)).Msg("批量设置自定义头")
 }
 
 // ClearHeaders 清空所有自定义头

@@ -91,7 +91,7 @@ func (p *GrpcProxy) HandleGrpcRequest(w http.ResponseWriter, r *http.Request) {
 
 	// 验证地址白名单
 	if !p.ValidateGrpcAddr(grpcAddr) {
-		log.WarnF("gRPC address not in whitelist: %s\n", grpcAddr)
+		log.GetLogger().Warn().Str("address", grpcAddr).Msg("gRPC address not in whitelist")
 		p.writeErrorResponse(w, "gRPC address not allowed", http.StatusForbidden)
 		return
 	}
@@ -99,7 +99,7 @@ func (p *GrpcProxy) HandleGrpcRequest(w http.ResponseWriter, r *http.Request) {
 	// 解析HTTP请求体
 	grpcReq, err := p.parseHttpRequest(r)
 	if err != nil {
-		log.ErrorF("failed to parse gRPC request: %v\n", err)
+		log.GetLogger().Error().Err(err).Msg("failed to parse gRPC request")
 		p.writeErrorResponse(w, fmt.Sprintf("invalid request format: %v\n", err), http.StatusBadRequest)
 		return
 	}
@@ -107,7 +107,7 @@ func (p *GrpcProxy) HandleGrpcRequest(w http.ResponseWriter, r *http.Request) {
 	// 执行gRPC调用
 	resp, err := p.executeGrpcCall(grpcAddr, grpcReq)
 	if err != nil {
-		log.ErrorF("gRPC call failed: %v\n", err)
+		log.GetLogger().Error().Err(err).Msg("gRPC call failed")
 		p.writeErrorResponse(w, fmt.Sprintf("gRPC call failed: %v", err), http.StatusInternalServerError)
 		return
 	}
@@ -243,7 +243,7 @@ func (p *GrpcProxy) getConnection(addr string) (*grpc.ClientConn, error) {
 	}
 
 	p.connPool[addr] = conn
-	log.InfoF("created new gRPC connection to %s\n", addr)
+	log.GetLogger().Info().Str("address", addr).Msg("created new gRPC connection")
 
 	return conn, nil
 }
@@ -264,7 +264,7 @@ func (p *GrpcProxy) writeGrpcResponse(w http.ResponseWriter, resp *GrpcResponse)
 	w.WriteHeader(resp.Code)
 
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
-		log.ErrorF("failed to encode gRPC response: %v\n", err)
+		log.GetLogger().Error().Err(err).Msg("failed to encode gRPC response")
 	}
 }
 
@@ -275,7 +275,7 @@ func (p *GrpcProxy) Close() {
 
 	for addr, conn := range p.connPool {
 		if err := conn.Close(); err != nil {
-			log.ErrorF("failed to close gRPC connection to %s: %v\n", addr, err)
+			log.GetLogger().Error().Err(err).Str("address", addr).Msg("failed to close gRPC connection")
 		}
 	}
 	p.connPool = make(map[string]*grpc.ClientConn)

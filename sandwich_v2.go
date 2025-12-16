@@ -57,29 +57,30 @@ func main() {
 		return
 	}
 
-	log.InitLog()
-
 	// 如果指定了配置文件，检查文件是否存在
 	if *configPath != "" {
 		if _, err := os.Stat(*configPath); os.IsNotExist(err) {
-			log.Printf("配置文件不存在: %s", *configPath)
+			fmt.Printf("配置文件不存在: %s", *configPath)
 			return
 		}
 		// 转换为绝对路径
 		absPath, err := filepath.Abs(*configPath)
 		if err != nil {
-			log.Printf("获取配置文件绝对路径失败: %v", err)
+			fmt.Printf("获取配置文件绝对路径失败: %v", err)
 			return
 		}
 		*configPath = absPath
 	}
+
+	// 日志
+	log.InitLogger(*configPath)
 
 	// 创建应用程序实例
 	sandwichApp := app.NewApplication(log.GetLogger())
 
 	// 初始化应用程序
 	if err := sandwichApp.Initialize(*configPath); err != nil {
-		log.Printf("初始化应用程序失败: %v", err)
+		log.GetLogger().Error().Err(err).Msg("初始化应用程序失败")
 		return
 	}
 
@@ -114,13 +115,13 @@ func main() {
 
 	// 启动应用程序
 	if err := sandwichApp.Start(); err != nil {
-		log.ErrorF("启动应用程序失败: %v", err)
+		log.GetLogger().Error().Err(err).Msg("启动应用程序失败")
 		return
 	}
 
 	// 等待信号
 	sig := <-sigChan
-	log.Printf("收到信号: %v，正在优雅关闭...", sig)
+	log.GetLogger().Info().Any("signal", sig).Msg("收到信号，正在优雅关闭...")
 
 	// 创建关闭超时上下文
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -136,12 +137,12 @@ func main() {
 	select {
 	case err := <-done:
 		if err != nil {
-			log.Printf("关闭应用程序时发生错误: %v", err)
+			log.GetLogger().Error().Err(err).Msg("关闭应用程序时发生错误")
 			os.Exit(1)
 		}
-		log.Println("应用程序已优雅关闭")
+		log.GetLogger().Info().Msg("应用程序已优雅关闭")
 	case <-shutdownCtx.Done():
-		log.Println("关闭超时，强制退出")
+		log.GetLogger().Warn().Msg("关闭超时，强制退出")
 		os.Exit(1)
 	}
 }

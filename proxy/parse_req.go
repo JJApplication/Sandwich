@@ -14,6 +14,8 @@ import (
 
 // ParseRequest 代理从 Nginx 拿到的 host 都是带有域名的
 // 直接显示为 localhost 的地址为不可信地址 直接返回错误
+//
+//go:inline
 func ParseRequest(req *http.Request) *url.URL {
 	// 优化：避免重复获取Host
 	host := req.Host
@@ -26,7 +28,10 @@ func ParseRequest(req *http.Request) *url.URL {
 	if !breaker.Get(host) {
 		data.AddInfluxData(req, data.StatBreak)
 		req.Header.Set(serror.SandwichInternalFlag, serror.SandwichBucketLimit)
-		log.DebugF("host: %s, client %s has been rate limited because of breakdown", host, req.RemoteAddr)
+		log.GetLogger().Debug().
+			Str("Host", host).
+			Str("Remote Addr", req.RemoteAddr).
+			Msg("client has been rate limited because of breakdown")
 		return &url.URL{Scheme: constant.SchemeSandwich}
 	}
 
@@ -43,7 +48,10 @@ func ParseRequest(req *http.Request) *url.URL {
 
 			// 添加统计数据
 			data.AddInfluxData(req, data.StatAbort)
-			log.DebugF("client %s has been rate limited: %s", req.RemoteAddr, result.Reason)
+			log.GetLogger().Debug().
+				Str("Remote Addr", req.RemoteAddr).
+				Str("Reason", result.Reason).
+				Msg("client has been rate limited")
 			req.Header.Set(serror.SandwichInternalFlag, serror.SandwichReqLimit)
 			return &url.URL{Scheme: constant.SchemeSandwich}
 		} else {

@@ -36,6 +36,8 @@ var (
 )
 
 // getOptimizedTransport 获取优化的HTTP传输层配置
+//
+//go:inline
 func getOptimizedTransport(transport string) *sandwichTransport {
 	transportOnce.Do(func() {
 		switch transport {
@@ -71,6 +73,7 @@ func (s *syncBufferPool) Put(buf []byte) {
 	}
 }
 
+//go:inline
 func getBufferPool(bufSize int) httputil.BufferPool {
 	return &syncBufferPool{
 		pool: sync.Pool{
@@ -83,15 +86,19 @@ func getBufferPool(bufSize int) httputil.BufferPool {
 }
 
 // http转发
+//
+//go:inline
 func newProxy() *httputil.ReverseProxy {
 	cfg := config.Get()
 	mods := modifier.GetManager().GetModifiers()
 
 	proxy := &httputil.ReverseProxy{
 		Director: func(request *http.Request) {
-			log.DebugF("parse request Header: %#v\n", request.Header)
-			log.DebugF("parse request Host: %#v\n", request.Host)
-			log.DebugF("parse request Trace-Id: %s\n", request.Header.Get(cfg.ProxyHeader.TraceId))
+			log.GetLogger().Debug().
+				Any("Header", request.Header).
+				Str("Host", request.Host).
+				Str("Trace-ID", request.Header.Get(cfg.ProxyHeader.TraceId)).
+				Msg("parse request")
 			// 转发前安全清理敏感请求头
 			stat.Add(stat.Total)
 			stat.AddGeo(request.RemoteAddr)
@@ -114,7 +121,7 @@ func newProxy() *httputil.ReverseProxy {
 			if grpc_proxy.IsEnabled() {
 				proxy := grpc_proxy.GetGrpcProxy()
 				if proxy != nil && proxy.IsGrpcRequest(request) {
-					log.DebugF("detected gRPC proxy request")
+					log.Debug("detected gRPC proxy request")
 					// 设置特殊的scheme来标识gRPC请求，后续在Transport中处理
 					request.URL = &url.URL{Scheme: constant.SchemeGrpc}
 					return
@@ -122,7 +129,7 @@ func newProxy() *httputil.ReverseProxy {
 			}
 
 			request.URL = ParseRequest(request)
-			log.DebugF("parse request, URL: %#v\n", request.URL)
+			log.GetLogger().Debug().Any("URL", request.URL).Msg("parse request")
 		},
 		Transport:     getOptimizedTransport(cfg.Proxy.Transport),
 		FlushInterval: time.Duration(utils.DefaultInt64(cfg.Proxy.FlushInterval, FlushInterval)) * time.Millisecond,
@@ -135,7 +142,7 @@ func newProxy() *httputil.ReverseProxy {
 						mod.Use(response)
 					}
 				})
-				log.DebugF("Perform time for response modifier: start - %v end - %v - sub: %v\n", start, end, sub)
+				log.GetLogger().Debug().Time("start", start).Time("end", end).Dur("sub", sub).Msg("Perform time for response modifier")
 				return nil
 			}
 
@@ -145,8 +152,12 @@ func newProxy() *httputil.ReverseProxy {
 			return nil
 		},
 		ErrorHandler: func(writer http.ResponseWriter, request *http.Request, err error) {
-			log.DebugF("host: %s, url: %#v, proto: %s, method: %s, error: %v\n",
-				request.Host, request.URL, request.Proto, request.Method, err)
+			log.GetLogger().Debug().
+				Str("host", request.Host).
+				Str("url", request.URL.String()).
+				Str("proto", request.Proto).
+				Str("method", request.Method).
+				Err(err).Msg("Proxy Error")
 			stat.Add(stat.Fail)
 			// 熔断判断
 			switch request.Header.Get(serror.SandwichInternalFlag) {
@@ -167,7 +178,7 @@ func newProxy() *httputil.ReverseProxy {
 				log.Debug("backend: service is down")
 				cache.Cache(http.StatusBadGateway, writer, request, cache.Unavailable)
 			}
-			log.ErrorF("proxy connect error: %s\n", err.Error())
+			log.GetLogger().Debug().Err(err).Msg("proxy connect error")
 			cache.Cache(http.StatusBadGateway, writer, request, cache.Unavailable)
 		},
 	}

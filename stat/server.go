@@ -3,10 +3,10 @@ package stat
 import (
 	"context"
 	"fmt"
+	"github.com/rs/zerolog"
 	"net/http"
 	"sandwich/config"
 	"sandwich/json"
-	"sandwich/log"
 )
 
 // stat server
@@ -16,11 +16,11 @@ type StatServer struct {
 	Addr    string
 	Port    int
 
-	logger *log.Log
+	logger *zerolog.Logger
 	server *http.Server
 }
 
-func NewStatServer(c config.StatConfig, l *log.Log) *StatServer {
+func NewStatServer(c config.StatConfig, l *zerolog.Logger) *StatServer {
 	return &StatServer{
 		Enabled: c.Enabled,
 		Addr:    c.Host,
@@ -35,12 +35,12 @@ func (s *StatServer) Start() error {
 	if !s.Enabled {
 		return nil
 	}
-	log.InfoF("开启状态统计服务: %s:%d", s.Addr, s.Port)
+	s.logger.Info().Str("address", s.Addr).Int("port", s.Port).Msg("开启状态统计服务")
 
 	go func() {
 		err := s.server.ListenAndServe()
 		if err != nil {
-			log.ErrorF("Stat server listen err: %v\n", err)
+			s.logger.Error().Err(err).Msg("Stat server listen err")
 		}
 	}()
 

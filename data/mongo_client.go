@@ -39,7 +39,7 @@ func InitMongo() {
 	log.Info("init mongodb")
 	err := mgm.SetDefaultConfig(&mgm.Config{CtxTimeout: 1 * time.Second}, cf.Database.Mongo.Database, options.Client().ApplyURI(cf.Database.Mongo.URL))
 	if err != nil {
-		log.ErrorF("failed to connect to mongo: %s\n", err.Error())
+		log.GetLogger().Error().Err(err).Msg("failed to connect to mongo")
 		return
 	}
 }
@@ -49,7 +49,7 @@ func getAppFromMongo() []DaoAPP {
 	var data []DaoAPP
 	err := mgm.Coll(&DaoAPP{}).SimpleFind(&data, bson.M{})
 	if err != nil {
-		log.ErrorF("get data from mongo failed: %s\n", err.Error())
+		log.GetLogger().Error().Err(err).Msg("get data from mongo failed")
 		return nil
 	}
 	return data

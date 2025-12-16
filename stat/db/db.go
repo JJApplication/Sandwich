@@ -30,7 +30,7 @@ func Init(cfg *config.Config) error {
 	var err error
 	db, err = gorm.Open(sqlite.Open(cfg.Stat.DBFile), &gorm.Config{})
 	if err != nil {
-		log.ErrorF("打开数据库失败: %v\n", err)
+		log.GetLogger().Error().Err(err).Msg("打开数据库失败")
 		return err
 	}
 	return nil
@@ -45,7 +45,7 @@ func EnsureTable(table string, dst interface{}) {
 		return
 	}
 	if err := db.Table(table).AutoMigrate(dst); err != nil {
-		log.ErrorF("创建表失败 %s: %v\n", table, err)
+		log.GetLogger().Error().Err(err).Str("Table", table).Msg("创建表失败")
 		return
 	}
 }

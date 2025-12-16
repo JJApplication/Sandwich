@@ -69,7 +69,7 @@ func geoFileSaver(cfg *config.Config) {
 	}
 	geoStatByte, err := C().Get(GeoSet)
 	if err != nil {
-		log.ErrorF("Get GeoSet failed: %v\n", err)
+		log.GetLogger().Error().Err(err).Msg("Get GeoSet failed")
 		return
 	}
 	_ = os.WriteFile(cfg.Stat.GeoFile, geoStatByte, os.ModePerm)
@@ -79,11 +79,11 @@ func geoDBSaver() {
 	var geoMap = make(map[string]int64)
 	geoStatByte, err := C().Get(GeoSet)
 	if err != nil {
-		log.ErrorF("Get GeoSet failed: %v\n", err)
+		log.GetLogger().Error().Err(err).Msg("Get GeoSet failed")
 		return
 	}
 	if err := json.Unmarshal(geoStatByte, &geoMap); err != nil {
-		log.ErrorF("Unmarshal GeoSet failed: %v\n", err)
+		log.GetLogger().Error().Err(err).Msg("Unmarshal GeoSet failed")
 		return
 	}
 	// 每次都是更新+增量相加

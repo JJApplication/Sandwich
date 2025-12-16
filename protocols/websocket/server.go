@@ -3,6 +3,7 @@ package websocket
 import (
 	"context"
 	"fmt"
+	"github.com/rs/zerolog"
 	"net/http"
 	"net/url"
 	"sandwich/log"
@@ -23,7 +24,7 @@ type Server struct {
 	upgrader  websocket.Upgrader     // WebSocket 升级器
 	conns     map[string]*Connection // 活跃连接映射
 	connsMu   sync.RWMutex           // 连接映射锁
-	logger    *log.Log               // 日志记录器
+	logger    *zerolog.Logger        // 日志记录器
 	ctx       context.Context        // 上下文
 	cancel    context.CancelFunc     // 取消函数
 	started   bool                   // 是否已启动
@@ -46,7 +47,7 @@ type Connection struct {
 }
 
 // NewServer 创建新的 WebSocket 服务器
-func NewServer(cfg config.WebSocketConfig, logger *log.Log) *Server {
+func NewServer(cfg config.WebSocketConfig, logger *zerolog.Logger) *Server {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	if logger == nil {

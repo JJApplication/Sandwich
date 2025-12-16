@@ -20,10 +20,14 @@ import (
 // Resolve 解析是否为前后端服务 进行分别转发
 // 配置优先级 > Header的优先级
 // 配置为{frontend: xx, backend: xx} 纯前后端服务时对应的另一套配置为空
+//
+//go:inline
 func Resolve(req *http.Request) *url.URL {
-	log.DebugF("resolve url: %s\n", req.RequestURI)
-	log.DebugF("resolve host: %s\n", req.Host)
-	log.DebugF("resolve headers: %#v\n", req.Header)
+	log.GetLogger().Debug().
+		Str("Host", req.Host).
+		Str("Url", req.RequestURI).
+		Any("Header", req.Header).
+		Msg("resolve request")
 	switch utils.ResolveSrv(req) {
 	case constant.Frontend:
 		return resolveFrontend(req)

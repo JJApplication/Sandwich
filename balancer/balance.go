@@ -27,7 +27,7 @@ type LoadBalancer struct {
 
 var (
 	// 全局负载均衡器实例
-	balancerCache = structure.NewMap[*LoadBalancer]()
+	balancerCache = structure.NewMap[*LoadBalancer](100)
 )
 
 // GetBalancer 获取或创建负载均衡器

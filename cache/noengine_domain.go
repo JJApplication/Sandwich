@@ -47,13 +47,13 @@ func loadAppDomainMap() *DomainMap {
 	}
 	data, err := getContent(cf.DomainMap)
 	if err != nil {
-		log.ErrorF("AppDomain config read error:%s\n", err.Error())
+		log.GetLogger().Error().Err(err).Msg("AppDomain config read error")
 		return nil
 	}
 
 	var tmp map[string]domainMap
 	if err = json.Unmarshal(data, &tmp); err != nil {
-		log.ErrorF("AppDomain config parse error:%s\n", err.Error())
+		log.GetLogger().Error().Err(err).Msg("AppDomain config parse error:%s")
 		return nil
 	}
 

@@ -85,8 +85,8 @@ func (fr *FlowRecorder) RecordBlocked(req *http.Request, result *FlowCheckResult
 	record := fr.createRecord(req, "blocked", result.RuleName, result.Reason)
 	fr.addRecord(record)
 
-	log.InfoF("Flow blocked: Host=%s, IP=%s, Rule=%s, Reason=%s",
-		record.Host, record.ClientIP, record.RuleName, record.Reason)
+	log.GetLogger().Info().Str("Host", record.Host).Str("IP", record.ClientIP).
+		Str("Rule", record.RuleName).Str("Reason", record.Reason).Msg("Flow blocked")
 }
 
 // RecordAllowed 记录通过的请求
@@ -229,7 +229,7 @@ func (fr *FlowRecorder) storeToInflux(records []FlowRecord) {
 		}
 	}
 
-	log.InfoF("Stored %d flow records to InfluxDB", len(records))
+	log.GetLogger().Info().Int("records", len(records)).Msg("Stored flow records to InfluxDB")
 }
 
 // storeToMongo 存储到MongoDB
@@ -244,7 +244,7 @@ func (fr *FlowRecorder) storeToMongo(records []FlowRecord) {
 func (fr *FlowRecorder) storeToFile(records []FlowRecord) {
 	file, err := os.OpenFile(fr.filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		log.ErrorF("Failed to open flow record file: %v", err)
+		log.GetLogger().Error().Err(err).Msg("Failed to open flow record file")
 		return
 	}
 	defer file.Close()
@@ -252,16 +252,16 @@ func (fr *FlowRecorder) storeToFile(records []FlowRecord) {
 	for _, record := range records {
 		data, err := json.Marshal(record)
 		if err != nil {
-			log.ErrorF("Failed to marshal flow record: %v", err)
+			log.GetLogger().Error().Err(err).Msg("Failed to marshal flow record")
 			continue
 		}
 		_, err = file.WriteString(string(data) + "\n")
 		if err != nil {
-			log.ErrorF("Failed to write flow record: %v", err)
+			log.GetLogger().Error().Err(err).Msg("Failed to write flow record")
 		}
 	}
 
-	log.InfoF("Stored %d flow records to file: %s", len(records), fr.filePath)
+	log.GetLogger().Info().Str("file", fr.filePath).Int("records", len(records)).Msg("Stored flow records to file")
 }
 
 // GetBlockedHosts 获取被限流的Host统计

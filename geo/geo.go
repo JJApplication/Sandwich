@@ -17,7 +17,7 @@ var db *maxminddb.Reader
 func LoadGEO() {
 	mmdb, err := maxminddb.OpenBytes(geoData)
 	if err != nil {
-		log.ErrorF("maxminddb.Open err: %v\n", err)
+		log.GetLogger().Error().Err(err).Msg("maxminddb.Open err")
 		return
 	}
 	db = mmdb

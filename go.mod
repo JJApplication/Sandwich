@@ -16,6 +16,7 @@ require (
 	github.com/olekukonko/tablewriter v1.0.9
 	github.com/oschwald/maxminddb-golang/v2 v2.0.0-beta.10
 	github.com/quic-go/quic-go v0.54.0
+	github.com/rs/zerolog v1.34.0
 	github.com/valyala/fasthttp v1.52.0
 	go.mongodb.org/mongo-driver v1.7.0
 	golang.org/x/crypto v0.43.0

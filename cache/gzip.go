@@ -29,7 +29,7 @@ func minify(w http.ResponseWriter, b []byte) {
 	gzw := gzip.NewWriter(w)
 	defer func() {
 		if e := gzw.Close(); e != nil {
-			log.ErrorF("gzip write error: %s\n", e.Error())
+			log.GetLogger().Error().Err(e).Msg("gzip write error")
 		}
 	}()
 	_, _ = gzw.Write(b)

@@ -9,7 +9,14 @@ type Map[T any] struct {
 }
 
 // NewMap 创建一个新的泛型Map实例
-func NewMap[T any]() *Map[T] {
+func NewMap[T any](size ...int) *Map[T] {
+	if len(size) > 0 {
+		preAlloc := size[0]
+		return &Map[T]{
+			m:  make(map[string]T, preAlloc),
+			mu: sync.RWMutex{},
+		}
+	}
 	return &Map[T]{
 		m:  make(map[string]T),
 		mu: sync.RWMutex{},

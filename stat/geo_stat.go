@@ -27,7 +27,7 @@ func syncGEOStat() {
 
 	data, err := json.Marshal(geoDataMap)
 	if err != nil {
-		log.ErrorF("sync geoIp failed: %v\n", err)
+		log.GetLogger().Error().Err(err).Msg("sync geoIp failed")
 	}
 	C().Set(GeoSet, data)
 }

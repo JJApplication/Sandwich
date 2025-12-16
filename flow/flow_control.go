@@ -100,7 +100,8 @@ func (fc *FlowController) createRateLimiter(limits []config.RateLimit) *RateLimi
 	for _, limit := range limits {
 		duration, err := fc.parseDuration(limit.Window, limit.Unit)
 		if err != nil {
-			log.ErrorF("Invalid duration format: %s%s, error: %v", limit.Window, limit.Unit, err)
+			log.GetLogger().Error().Err(err).Str("Windows", limit.Window).Str("Unit", limit.Unit).
+				Msg("Invalid duration format")
 			continue
 		}
 		rl.limits = append(rl.limits, TimeWindowLimit{

@@ -78,7 +78,7 @@ func (seq *SequenceManger) RecordRequest(domain, path, method string) {
 		DoUpdates: clause.Assignments(map[string]interface{}{"count": gorm.Expr("count + 1"), "updated_at": time.Now()}),
 	}).Create(rec).Error
 	if err != nil {
-		log.ErrorF("sequence: 记录失败: %v\n", err)
+		log.GetLogger().Error().Err(err).Msg("sequence: 记录失败")
 	}
 }
 

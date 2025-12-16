@@ -16,7 +16,7 @@ import (
 // 不在列表中的域名直接拒绝请求
 
 var (
-	DomainAllowList = structure.NewMapStruct()
+	DomainAllowList = structure.NewMapStruct(100)
 )
 
 func InitDomainAllowList(domainData *DomainMap) {

@@ -96,7 +96,7 @@ func (g *GzipModifier) ModifyResponse(response *http.Response) error {
 	tee := io.TeeReader(response.Body, &buf)
 	originalBody, err := io.ReadAll(tee)
 	if err != nil {
-		log.DebugF("读取响应体失败: %s", err.Error())
+		log.GetLogger().Debug().Err(err).Msg("读取响应体失败")
 		return err
 	}
 
@@ -109,7 +109,7 @@ func (g *GzipModifier) ModifyResponse(response *http.Response) error {
 	// 压缩响应体
 	compressedBody, err := g.compressData(originalBody)
 	if err != nil {
-		log.DebugF("gzip压缩失败: %s", err.Error())
+		log.GetLogger().Debug().Err(err).Msg("gzip压缩失败")
 		// 压缩失败时返回原始响应
 		response.Body = io.NopCloser(bytes.NewReader(buf.Bytes()))
 		return nil
@@ -131,9 +131,10 @@ func (g *GzipModifier) ModifyResponse(response *http.Response) error {
 	response.Body = io.NopCloser(bytes.NewReader(compressedBody))
 
 	if config.Debug {
-		log.DebugF("gzip压缩成功: %d -> %d 字节 (压缩率: %.2f%%)",
-			len(originalBody), len(compressedBody),
-			float64(len(originalBody)-len(compressedBody))/float64(len(originalBody))*100)
+		log.GetLogger().Debug().
+			Int("原始大小", len(originalBody)).
+			Int("压缩大小", len(compressedBody)).
+			Float64("压缩率", float64(len(originalBody)-len(compressedBody))/float64(len(originalBody))*100).Msg("gzip压缩成功")
 	}
 	return nil
 }
@@ -166,7 +167,7 @@ func (g *GzipModifier) shouldCompress(response *http.Response) bool {
 		}
 	}
 
-	log.DebugF("响应类型 %s 不在可压缩列表中", contentType)
+	log.GetLogger().Debug().Str("响应类型", contentType).Msg("响应类型不在可压缩列表中")
 	return false
 }
 
@@ -238,10 +239,9 @@ func (g *GzipModifier) UpdateConfig() {
 				return w
 			},
 		}
-		log.DebugF("gzip压缩级别已更新，writer对象池已重新初始化: level=%d", g.level)
+		log.GetLogger().Debug().Int("level", g.level).Msg("gzip压缩级别已更新，writer对象池已重新初始化")
 	}
-
-	log.DebugF("gzip配置已更新: enabled=%v, level=%d, types=%v", g.enabled, g.level, g.types)
+	log.GetLogger().Debug().Bool("enable", g.enabled).Int("level", g.level).Any("types", g.types).Msg("gzip配置已更新")
 }
 
 // GetName 获取修改器名称

@@ -13,7 +13,7 @@ import (
 
 // 域名端口映射表
 // 更加安全的端口映射表
-var domainPool = structure.NewMap[[]int]()
+var domainPool = structure.NewMap[[]int](100)
 
 func InitPool() {
 	GetDataFromMongo()
@@ -43,13 +43,12 @@ func DomainReflect(host string) []string {
 func GetDataFromMongo() {
 	data := getAppFromMongo()
 	for _, v := range data {
-		log.InfoF("find app [%s] from mongo, domain: [%s], ports: [%+v]\n",
-			v.Meta.Name, v.Meta.Meta.Domain, v.Meta.RunData.Ports)
+		log.GetLogger().Info().Str("app", v.Meta.Name).Str("domain", v.Meta.Meta.Domain).Any("ports", v.Meta.RunData.Ports).Msg("find app from mongo")
 	}
 
 	// 托管随机端口服务和固定端口服务
 	for _, d := range data {
-		log.InfoF("load [%s] to pool\n", d.Meta.Name)
+		log.GetLogger().Info().Str("app", d.Meta.Name).Msg("load app to pool")
 		if d.Meta.Meta.Domain != "" && d.Meta.RunData.RandomPort {
 			domainPool.Put(d.Meta.Meta.Domain, d.Meta.RunData.Ports)
 		} else if d.Meta.Meta.Domain != "" && len(d.Meta.RunData.Ports) > 0 && !d.Meta.RunData.RandomPort {
@@ -59,7 +58,7 @@ func GetDataFromMongo() {
 
 	log.Info("domainPool is:")
 	domainPool.Range(func(key string, value []int) bool {
-		log.InfoF("[%s]: %#v\n", key, value)
+		log.GetLogger().Info().Str("app", key).Any("ports", value).Msg("pool apps")
 		return true
 	})
 }

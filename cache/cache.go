@@ -36,6 +36,7 @@ var CodeMap = map[int][]byte{
 	Other:       []byte(serror.ERRORSendProxy),
 }
 
+//go:inline
 func Cache(code int, w http.ResponseWriter, r *http.Request, resType int) {
 	cf := config.Get()
 	if cf.Security.StrictMode || !acceptHTML(r) {
@@ -88,11 +89,11 @@ func InitGzipCache() {
 	var err error
 	ForbiddenPageGzip, err = compressData(ForbiddenPage)
 	if err != nil {
-		log.ErrorF("compress ForbiddenPage error: %s\n", err.Error())
+		log.GetLogger().Error().Err(err).Msg("compress ForbiddenPage error")
 	}
 	UnavailablePageGzip, err = compressData(UnavailablePage)
 	if err != nil {
-		log.ErrorF("compress UnavailablePage error: %s\n", err.Error())
+		log.GetLogger().Error().Err(err).Msg("compress UnavailablePage error")
 	}
-	log.Info("gzip cache initialized")
+	log.GetLogger().Info().Msg("gzip cache initialized")
 }

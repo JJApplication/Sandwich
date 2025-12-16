@@ -49,7 +49,7 @@ func syncDomainStat() {
 
 	data, err := json.Marshal(domainDataMap)
 	if err != nil {
-		log.ErrorF("sync domainStat failed: %v\n", err)
+		log.GetLogger().Error().Err(err).Msg("sync domainStat failed")
 	}
 	C().Set(DomainStat, data)
 }

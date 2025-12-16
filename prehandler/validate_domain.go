@@ -9,6 +9,8 @@ import (
 
 // ValidateDomain 校验域名是否绑定
 // 内部请求无需校验
+//
+//go:inline
 func ValidateDomain(req *http.Request) bool {
 	domain := req.Host
 	cf := config.Get()

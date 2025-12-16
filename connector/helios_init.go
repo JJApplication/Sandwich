@@ -14,13 +14,13 @@ import (
 func InitHeliosConfig() {
 	cf := config.Get()
 	// 连接到Unix域套接字
-	log.InfoF("Start to connect to %s\n", cf.FrontProxy.GrpcAddr)
+	log.GetLogger().Info().Str("address", cf.FrontProxy.GrpcAddr).Msg("Start to connect")
 	conn, err := grpc.NewClient(
 		fmt.Sprintf("unix://%s", cf.FrontProxy.GrpcAddr),
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	)
 	if err != nil {
-		log.ErrorF("Failed to connect unix: %v\n", err)
+		log.GetLogger().Error().Err(err).Msg("Failed to connect unix")
 		return
 	}
 	defer conn.Close()
@@ -34,17 +34,18 @@ func InitHeliosConfig() {
 
 	resp, err := client.GetServerInfo(ctx, &GetServerInfoRequest{})
 	if err != nil {
-		log.ErrorF("Failed to get server info: %v\n", err)
+		log.GetLogger().Error().Err(err).Msg("Failed to get server info")
 		return
 	}
 
 	// 打印结果
-	log.Debug("Server Info:\n")
-	log.DebugF("Host: %s\n", resp.Host)
-	log.DebugF("Port: %d\n", resp.Port)
-	log.DebugF("Internal Flag: %s\n", resp.InternalFlag)
-	log.DebugF("Internal Local Flag: %s\n", resp.InternalLocalFlag)
-	log.DebugF("Internal Backend Flag: %s\n", resp.InternalBackendFlag)
+	log.GetLogger().Debug().
+		Str("Host", resp.Host).
+		Int32("Port", resp.Port).
+		Str("Internal Flag", resp.InternalFlag).
+		Str("Internal Local Flag", resp.InternalLocalFlag).
+		Str("Internal Backend Flag", resp.InternalBackendFlag).
+		Msg("Server Info")
 
 	// 刷新值
 	cf.FrontProxy.FrontendHost = resp.Host

@@ -25,15 +25,15 @@ func resolveFrontend(req *http.Request) *url.URL {
 	host := req.Host
 	if !resolveDomain(host) {
 		data.AddInfluxData(req, data.StatNotFound)
-		log.ErrorF("domain resolved failed: [%s]\n", host)
+		log.GetLogger().Error().Str("Host", host).Msg("domain resolved failed")
 		return nil
 	}
 	// 根据域名获取前端app
 	app := cache.AppDomainMap.MustGet(host)
 	if app.Frontend != "" {
-		log.DebugF("domain resolved -> [%s] : [%s]\n", host, app)
+		log.GetLogger().Debug().Str("Host", host).Any("app", app).Msg("domain resolved")
 		if config.Get().FrontProxy.FrontendPort <= 0 {
-			log.ErrorF("app port not found: [%s]\n", app.Frontend)
+			log.GetLogger().Error().Str("front", app.Frontend).Msg("app port not found")
 			return nil
 		}
 		data.AddInfluxData(req, data.StatPass)
@@ -43,11 +43,11 @@ func resolveFrontend(req *http.Request) *url.URL {
 		req.Header.Set(config.Get().FrontProxy.FrontendFlag, app.Frontend)
 		// 转发请求必须携带实际HOST信息
 		req.Header.Set(config.Get().ProxyHeader.FrontendHostHeader, host)
-		log.DebugF("frontend -> [%s] : [%d]\n", app, config.Get().FrontProxy.FrontendPort)
+		log.GetLogger().Debug().Str("front", app.Frontend).Int("port", config.Get().FrontProxy.FrontendPort).Msg("proxy -> frontend")
 		stat.Add(stat.Static)
 		return req.URL
 	}
-	log.ErrorF("domain resolved failed: [%s]\n", host)
+	log.GetLogger().Error().Str("domain", host).Msg("domain resolved failed")
 	return nil
 }
 

@@ -70,12 +70,12 @@ func (mm *ModifierManager) registerDefaultModifiers() {
 	// 注册gzip压缩修改器
 	gzipModifier := NewGzipModifier()
 	mm.chain.AddModifier(gzipModifier)
-	log.DebugF("已注册修改器: %s", gzipModifier.GetName())
+	log.GetLogger().Debug().Str("名称", gzipModifier.GetName()).Msg("已注册修改器")
 
 	// 注册自定义头修改器
 	customHeaderModifier := NewCustomHeaderModifier()
 	mm.chain.AddModifier(customHeaderModifier)
-	log.DebugF("已注册修改器: %s", customHeaderModifier.GetName())
+	log.GetLogger().Debug().Str("名称", gzipModifier.GetName()).Msg("已注册修改器")
 }
 
 func (mm *ModifierManager) RegisterModifier(modifier Modifier) {
@@ -109,7 +109,7 @@ func (mm *ModifierManager) GetModifierByName(name string) Modifier {
 func (mm *ModifierManager) AddCustomModifier(modifier Modifier) {
 	if modifier != nil {
 		mm.chain.AddModifier(modifier)
-		log.DebugF("已添加自定义修改器: %s", modifier.GetName())
+		log.GetLogger().Debug().Str("名称", modifier.GetName()).Msg("已添加自定义修改器")
 	}
 }
 

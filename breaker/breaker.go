@@ -56,7 +56,7 @@ func (b *Breaker) Get(domain string) bool {
 		return true
 	}
 	if len(sb.bucket) >= sb.errorConn {
-		log.InfoF("[%s] breaker now is broken\n", domain)
+		log.GetLogger().Info().Str("domain", domain).Msg("breaker now is broken")
 		return false
 	}
 	return true
@@ -88,7 +88,7 @@ func (b *Breaker) Reset() {
 	for range ticker {
 		b.serviceBucket.Range(func(key string, value *BreakerBucket) bool {
 			value.bucket = make(chan int, b.cf.Bucket)
-			log.InfoF("[%s] breaker now is reset\n", key)
+			log.GetLogger().Info().Str("domain", key).Msg("breaker now is reset")
 			return true
 		})
 	}

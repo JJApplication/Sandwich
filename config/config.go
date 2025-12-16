@@ -38,6 +38,7 @@ type Config struct {
 		Enable bool `yaml:"enable" json:"enable"`
 		Port   int  `yaml:"port" json:"port"`
 	} `yaml:"pprof" json:"pprof"`
+	MaxCores int `yaml:"max_cores" json:"max_cores"`
 }
 
 type ProxyConfig struct {

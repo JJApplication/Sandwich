@@ -64,9 +64,9 @@ func InitInflux() {
 		}
 		res, err := influxC.Setup(context.Background(), cf.Database.Influx.Org, cf.Database.Influx.Password, cf.Database.Influx.Org, cf.Database.Influx.Bucket, 0)
 		if err != nil {
-			log.ErrorF("setup Error: %s\n", err.Error())
+			log.GetLogger().Error().Err(err).Msg("setup Error")
 		} else {
-			log.InfoF("setup finished, authToken: %s\n", *res.Auth.Token)
+			log.GetLogger().Info().Str("token", *res.Auth.Token).Msg("setup finished")
 		}
 	}
 
@@ -121,11 +121,10 @@ func getInfluxData(query string) []map[string]interface{} {
 	queryApi := influxC.QueryAPI(cf.Database.Influx.Org)
 	result, err := queryApi.Query(context.Background(), query)
 	if err != nil {
-		log.ErrorF("query influx error: %s\n", err.Error())
+		log.GetLogger().Error().Err(err).Msg("query influx error")
 		return nil
 	}
 	for result.Next() {
-		// log.Printf("%+v", result.Record().Values())
 		res = append(res, result.Record().Values())
 	}
 	return res

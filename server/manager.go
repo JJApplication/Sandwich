@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"github.com/rs/zerolog"
 	"io"
 	"net"
 	"net/http"
@@ -25,7 +26,7 @@ type limitedReader struct {
 	io.ReadCloser
 	limit    int64
 	read     int64
-	logger   *log.Log
+	logger   *zerolog.Logger
 	host     string
 	exceeded bool
 }
@@ -41,8 +42,7 @@ func (lr *limitedReader) Read(p []byte) (n int, err error) {
 	if lr.read > lr.limit {
 		lr.exceeded = true
 		if lr.logger != nil {
-			lr.logger.ErrorF("请求体超出限制被拒绝: Host=%s, Read=%d, Limit=%d",
-				lr.host, lr.read, lr.limit)
+			lr.logger.Error().Str("Host", lr.host).Int64("Read", lr.read).Int64("Limit", lr.limit).Msg("请求体超出限制被拒绝")
 		}
 		return 0, fmt.Errorf("request entity too large")
 	}
@@ -61,7 +61,7 @@ type Manager struct {
 	cancel  context.CancelFunc         // 取消函数
 	wg      sync.WaitGroup             // 等待组
 	started bool                       // 是否已启动
-	logger  *log.Log                   // 日志记录器
+	logger  *zerolog.Logger            // 日志记录器
 
 	// AutoTLS
 	acmeMgr            *autocert.Manager  // autocert 管理器
@@ -84,7 +84,7 @@ type ServerInstance struct {
 }
 
 // NewManager 创建新的服务器管理器
-func NewManager(cfg *config.Config, handler http.Handler, logger *log.Log) *Manager {
+func NewManager(cfg *config.Config, handler http.Handler, logger *zerolog.Logger) *Manager {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	if logger == nil {
@@ -186,7 +186,7 @@ func (m *Manager) startServer(serverConfig config.ServerConfig) error {
 			// 检查是否需要自动重定向HTTP到HTTPS
 			if r.Header.Get(m.config.ProxyHeader.BackendHeader) == "" && serverConfig.Protocol == "http" {
 				// 添加调试日志
-				m.logger.DebugF("HTTP请求: Host=%s, URI=%s, Protocol=%s", r.Host, r.RequestURI, serverConfig.Protocol)
+				m.logger.Debug().Str("Host", r.Host).Str("URI", r.RequestURI).Str("Protocol", serverConfig.Protocol).Msg("HTTP请求")
 
 				// 检查请求的域名是否配置了自动重定向
 				host := r.Host
@@ -195,22 +195,21 @@ func (m *Manager) startServer(serverConfig config.ServerConfig) error {
 					host = host[:colonIndex]
 				}
 
-				m.logger.DebugF("处理域名: %s (原始Host: %s)", host, r.Host)
+				m.logger.Debug().Str("域名", host).Str("原始Host", r.Host).Msg("处理域名")
 
 				// 查找匹配的域名配置
 				for i, domainConfig := range serverConfig.DomainConfig {
-					m.logger.DebugF("检查域名配置 %d: AutoRedirect=%v, Domains=%v", i, domainConfig.AutoRedirect, domainConfig.Domains)
+					m.logger.Debug().Int("域名组", i).Bool("自动重定向", domainConfig.AutoRedirect).Any("域名", domainConfig.Domains).Msg("检查域名配置")
 
 					if domainConfig.AutoRedirect {
 						// 检查当前域名是否在配置的域名列表中
 						for j, configuredDomain := range domainConfig.Domains {
-							m.logger.DebugF("检查域名匹配 %d: %s vs %s", j, host, configuredDomain)
+							m.logger.Debug().Int("域名组", j).Str("Host", host).Str("Domain", configuredDomain).Msg("检查域名匹配")
 
 							if host == configuredDomain || (strings.HasPrefix(configuredDomain, "*.") && strings.HasSuffix(host, configuredDomain[1:])) {
 								// 构建HTTPS重定向URL
 								httpsURL := fmt.Sprintf("https://%s%s", r.Host, r.RequestURI)
-								m.logger.DebugF("域名匹配成功，执行重定向: %s -> %s (配置域名: %s)", r.URL.String(), httpsURL, configuredDomain)
-
+								m.logger.Debug().Str("源URL", r.URL.String()).Str("目标URL", httpsURL).Str("配置域名", configuredDomain).Msg("域名匹配成功，执行重定向")
 								// 执行301永久重定向
 								w.Header().Set("Location", httpsURL)
 
@@ -224,9 +223,9 @@ func (m *Manager) startServer(serverConfig config.ServerConfig) error {
 										hstsValue += "; preload"
 									}
 									w.Header().Set("Strict-Transport-Security", hstsValue)
-									m.logger.DebugF("设置HSTS头部: %s", hstsValue)
+									m.logger.Debug().Str("HSTS头", hstsValue).Msg("设置HSTS头部")
 								} else {
-									m.logger.DebugF("未设置HSTS头部 (HSTSMaxAge=0)")
+									m.logger.Debug().Msg("未设置HSTS头部 (HSTSMaxAge=0)")
 								}
 
 								w.WriteHeader(http.StatusMovedPermanently)
@@ -322,22 +321,22 @@ func (m *Manager) configureTLS(instance *ServerInstance) error {
 				m.acmeMU.Lock()
 				defer m.acmeMU.Unlock()
 
-				m.logger.InfoF("AutoTLS: 即将获取/刷新证书，域名: %s，准备处理80端口\n", hello.ServerName)
+				m.logger.Info().Str("域名", hello.ServerName).Msg("AutoTLS: 即将获取/刷新证书, 准备处理80端口")
 				if err := m.beforeHandleAutoCert(); err != nil {
-					m.logger.ErrorF("AutoTLS: beforeHandleAutoCert 失败: %v\n", err)
+					m.logger.Error().Err(err).Msg("AutoTLS: beforeHandleAutoCert 失败")
 				}
 
 				cert, err := origGetCert(hello)
 
 				if err2 := m.afterHandleAutoCert(); err2 != nil {
-					m.logger.ErrorF("AutoTLS: afterHandleAutoCert 失败: %v\n", err2)
+					m.logger.Error().Err(err2).Msg("AutoTLS: afterHandleAutoCert 失败")
 				}
 
 				if err != nil {
-					m.logger.ErrorF("AutoTLS: 获取证书失败: %v\n", err)
+					m.logger.Error().Err(err).Msg("AutoTLS: 获取证书失败")
 					return nil, err
 				} else {
-					m.logger.InfoF("AutoTLS: 证书获取/刷新完成，域名: %s\n", hello.ServerName)
+					m.logger.Info().Str("域名", hello.ServerName).Msg("AutoTLS: 证书获取/刷新完成")
 					return cert, nil
 				}
 			})
@@ -396,11 +395,11 @@ func (m *Manager) beforeHandleAutoCert() error {
 
 	// 如有占用则先停止
 	if http80 != nil {
-		m.logger.InfoF("AutoTLS: 检测到80端口被服务器 '%s' 占用，先停止该HTTP服务器\n", http80.Name)
+		m.logger.Info().Str("服务", http80.Name).Msg("AutoTLS: 检测到80端口被服务器占用, 先停止该HTTP服务器")
 		ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()
 		if err := http80.Server.Shutdown(ctx); err != nil {
-			m.logger.ErrorF("AutoTLS: 停止80端口HTTP服务器失败: %v\n", err)
+			m.logger.Error().Err(err).Msg("AutoTLS: 停止80端口HTTP服务器失败")
 		}
 		m.stoppedHTTP80 = http80
 		// 从映射移除，避免状态混淆
@@ -427,10 +426,10 @@ func (m *Manager) beforeHandleAutoCert() error {
 	m.autoCertTempServer = tempSrv
 	go func() {
 		if err := tempSrv.Serve(ln); err != nil && err != http.ErrServerClosed {
-			m.logger.ErrorF("AutoTLS: 挑战服务器运行错误: %v\n", err)
+			m.logger.Error().Err(err).Msg("AutoTLS: 挑战服务器运行错误")
 		}
 	}()
-	m.logger.InfoF("AutoTLS: 临时挑战服务器已在 %s 开启\n", addr)
+	m.logger.Info().Str("地址", addr).Msg("AutoTLS: 临时挑战服务器已开启")
 	return nil
 }
 
@@ -442,14 +441,14 @@ func (m *Manager) afterHandleAutoCert() error {
 		defer cancel()
 		_ = m.autoCertTempServer.Shutdown(ctx)
 		m.autoCertTempServer = nil
-		m.logger.Info("AutoTLS: 临时挑战服务器已关闭")
+		m.logger.Info().Msg("AutoTLS: 临时挑战服务器已关闭")
 	}
 
 	// 恢复原HTTP服务器（如存在）
 	if m.stoppedHTTP80 != nil {
-		m.logger.InfoF("AutoTLS: 重新启动原HTTP服务器 '%s' (80端口)\n", m.stoppedHTTP80.Name)
+		m.logger.Info().Str("服务", m.stoppedHTTP80.Name).Msg("AutoTLS: 重新启动原HTTP服务器 (80端口)")
 		if err := m.startServer(m.stoppedHTTP80.Config); err != nil {
-			m.logger.ErrorF("AutoTLS: 重启80端口HTTP服务器失败: %v\n", err)
+			m.logger.Error().Err(err).Msg("AutoTLS: 重启80端口HTTP服务器失败")
 		}
 		m.stoppedHTTP80 = nil
 	}

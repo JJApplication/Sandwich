@@ -20,8 +20,8 @@ func PerformTime(f func()) (time.Time, time.Time, time.Duration) {
 
 func PerformCalc(event string, start time.Time) {
 	end := time.Now()
-	log.GetLogger().DebugF("Perform test [%s] start at %s - end at %s - sub: %v",
-		event,
-		start.Format(time.RFC3339Nano),
-		end.Format(time.RFC3339Nano), end.Sub(start))
+	log.GetLogger().Debug().Str("事件", event).
+		Str("起始", start.Format(time.RFC3339Nano)).
+		Str("结束", end.Format(time.RFC3339Nano)).
+		Dur("耗时", end.Sub(start)).Msg("Perform test")
 }

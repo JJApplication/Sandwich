@@ -17,7 +17,7 @@ func GetGrpcProxy() *GrpcProxy {
 		cfg := config.Get()
 		if cfg.Features.GrpcProxy.Enabled {
 			globalProxy = NewGrpcProxy(&cfg.Features.GrpcProxy)
-			log.InfoF("gRPC proxy initialized with %d allowed hosts\n", len(cfg.Features.GrpcProxy.Hosts))
+			log.GetLogger().Info().Int("hosts", len(cfg.Features.GrpcProxy.Hosts)).Msg("gRPC proxy initialized with allowed hosts")
 		} else {
 			log.Debug("gRPC proxy is disabled")
 		}

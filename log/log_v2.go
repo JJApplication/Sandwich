@@ -1,0 +1,64 @@
+package log
+
+import (
+	"github.com/rs/zerolog"
+	"os"
+	"sandwich/config"
+	"time"
+)
+
+var (
+	globalLogger zerolog.Logger
+)
+
+func InitLogger(configPath string) {
+	cf := config.NewConfigLoader(configPath)
+	if cf == nil {
+		return
+	}
+	conf, err := cf.LoadConfig()
+	if err != nil {
+		panic(err)
+	}
+	globalLogger = zerolog.New(zerolog.ConsoleWriter{
+		Out:        os.Stdout,
+		NoColor:    conf.Log.Color,
+		TimeFormat: time.DateTime,
+	}).Level(getLevel(conf.Log.LogLevel)).With().Timestamp().Logger()
+}
+
+func GetLogger() *zerolog.Logger {
+	return &globalLogger
+}
+
+func Info(msg string) {
+	globalLogger.Info().Msg(msg)
+}
+
+func Debug(msg string) {
+	globalLogger.Debug().Msg(msg)
+}
+
+func Warn(msg string) {
+	globalLogger.Warn().Msg(msg)
+}
+
+func Error(msg string) {
+	globalLogger.Error().Msg(msg)
+}
+
+//go:inline
+func getLevel(level string) zerolog.Level {
+	switch level {
+	case "debug":
+		return zerolog.DebugLevel
+	case "info":
+		return zerolog.InfoLevel
+	case "warn":
+		return zerolog.WarnLevel
+	case "error":
+		return zerolog.ErrorLevel
+	default:
+		return zerolog.InfoLevel
+	}
+}

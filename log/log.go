@@ -1,3 +1,5 @@
+//go:build v1
+
 /*
 Project: Sandwich log.go
 Created: 2021/12/12 by Landers

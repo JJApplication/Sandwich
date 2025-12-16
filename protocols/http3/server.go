@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"github.com/rs/zerolog"
 	"net"
 	"net/http"
 	"sandwich/utils"
@@ -25,7 +26,7 @@ type Server struct {
 	server   *http3.Server      // HTTP/3 服务器实例
 	listener *quic.Listener     // QUIC 监听器
 	handler  http.Handler       // 请求处理器
-	logger   *log.Log           // 日志记录器
+	logger   *zerolog.Logger    // 日志记录器
 	mu       sync.RWMutex       // 读写锁
 	started  bool               // 是否已启动
 	ctx      context.Context    // 上下文
@@ -33,7 +34,7 @@ type Server struct {
 }
 
 // NewServer 创建新的 HTTP/3 服务器
-func NewServer(cfg config.HTTP3Config, handler http.Handler, logger *log.Log) *Server {
+func NewServer(cfg config.HTTP3Config, handler http.Handler, logger *zerolog.Logger) *Server {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	if logger == nil {

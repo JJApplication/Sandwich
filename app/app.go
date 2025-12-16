@@ -4,11 +4,12 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"github.com/rs/zerolog"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"runtime"
 	"sandwich/config"
-	"sandwich/log"
 	"sandwich/modifier"
 	"sandwich/pprof"
 	"sandwich/protocols/http3"
@@ -32,13 +33,13 @@ type Application struct {
 	http3Server   *http3.Server        // HTTP/3 服务器
 	wsServer      *websocket.Server    // WebSocket 服务器
 	statServer    *stat.StatServer     // 状态统计服务器
-	logger        *log.Log             // 日志记录器
+	logger        *zerolog.Logger      // 日志记录器
 	ctx           context.Context      // 应用上下文
 	cancel        context.CancelFunc   // 取消函数
 }
 
 // NewApplication 创建新的应用程序实例
-func NewApplication(logger *log.Log) *Application {
+func NewApplication(logger *zerolog.Logger) *Application {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	// 创建日志记录器
@@ -51,11 +52,18 @@ func NewApplication(logger *log.Log) *Application {
 
 // Initialize 初始化应用程序
 func (app *Application) Initialize(configPath string) error {
-	app.logger.Printf("正在初始化 Sandwich 代理服务...")
+	app.logger.Info().Msg("正在初始化 Sandwich 代理服务...")
 
 	// 加载配置
 	if err := app.loadConfig(configPath); err != nil {
 		return fmt.Errorf("加载配置失败: %v", err)
+	}
+
+	// 设置最大core核心数
+	if app.config.MaxCores <= 0 {
+		runtime.GOMAXPROCS(runtime.NumCPU())
+	} else {
+		runtime.GOMAXPROCS(app.config.MaxCores)
 	}
 
 	// 初始化组件
@@ -66,7 +74,7 @@ func (app *Application) Initialize(configPath string) error {
 	// 启动配置监控
 	app.startConfigWatcher()
 
-	app.logger.Printf("Sandwich 代理服务初始化完成")
+	app.logger.Info().Msg("Sandwich 代理服务初始化完成")
 	return nil
 }
 
@@ -77,7 +85,7 @@ func (app *Application) loadConfig(configPath string) error {
 
 	// 如果没有指定配置文件，使用默认配置
 	if configPath == "" {
-		app.logger.Printf("未指定配置文件，使用默认配置")
+		app.logger.Info().Msg("未指定配置文件，使用默认配置")
 		app.config = config.GetDefaultConfig()
 	} else {
 		// 加载配置文件
@@ -86,13 +94,13 @@ func (app *Application) loadConfig(configPath string) error {
 		if err != nil {
 			return fmt.Errorf("加载配置文件失败: %v", err)
 		}
-		app.logger.Printf("已加载配置文件: %s", configPath)
+		app.logger.Info().Str("配置文件", configPath).Msg("已加载配置文件")
 	}
 
 	// 应用环境变量覆盖
 	envMapper := config.NewEnvMapper()
 	if err := envMapper.ApplyEnvOverrides(app.config); err != nil {
-		app.logger.Printf("应用环境变量覆盖失败: %v", err)
+		app.logger.Error().Err(err).Msg("应用环境变量覆盖失败")
 	}
 
 	// 标准化配置
@@ -105,22 +113,20 @@ func (app *Application) loadConfig(configPath string) error {
 			return fmt.Errorf("配置验证失败: %v", validateResult)
 		}
 		if len(validateResult.Warnings) > 0 {
-			app.logger.Printf("配置存在警告: %v", validateResult.Warnings)
+			app.logger.Warn().Any("警告", validateResult.Warnings).Msg("配置存在警告")
 		}
 	} else {
-		app.logger.Printf("配置校验通过")
+		app.logger.Info().Msg("配置校验通过")
 	}
 
 	// 检查配置一致性
 	warnings := config.ValidateConfigConsistency(app.config)
 	for _, warning := range warnings {
-		app.logger.Printf("配置警告: %s", warning)
+		app.logger.Warn().Any("配置警告", warning).Msg("配置检查")
 	}
 
 	// 注册全局配置
 	app.configLoader.RegisterGlobalConfig(app.config)
-	// 刷新日志配置
-	log.Reload(app.config.Log)
 	return nil
 }
 
@@ -180,7 +186,7 @@ func (app *Application) createProxyHandler() http.Handler {
 		if app.wsServer != nil && app.isWebSocketRequest(r) {
 			// 处理 WebSocket 升级
 			if err := app.wsServer.HandleUpgrade(w, r); err != nil {
-				app.logger.Printf("WebSocket 升级失败: %v", err)
+				app.logger.Error().Err(err).Msg("WebSocket 升级失败")
 				http.Error(w, "WebSocket upgrade failed", http.StatusInternalServerError)
 			}
 			return
@@ -223,7 +229,7 @@ func (app *Application) startConfigWatcher() {
 
 	// 添加配置变化监听器
 	app.configLoader.AddWatcher(func(newConfig *config.Config) {
-		app.logger.Printf("检测到配置变化，正在重新加载...")
+		app.logger.Info().Msg("检测到配置变化，正在重新加载...")
 
 		// 更新配置
 		app.config = newConfig
@@ -236,11 +242,11 @@ func (app *Application) startConfigWatcher() {
 		// 更新服务器管理器配置
 		if app.serverManager != nil {
 			if err := app.serverManager.UpdateConfig(newConfig); err != nil {
-				app.logger.Printf("更新服务器配置失败: %v", err)
+				app.logger.Error().Err(err).Msg("更新服务器配置失败")
 			}
 		}
 
-		app.logger.Printf("配置重新加载完成")
+		app.logger.Info().Msg("配置重新加载完成")
 	})
 
 	// 启动配置监控
@@ -249,7 +255,7 @@ func (app *Application) startConfigWatcher() {
 
 // Start 启动应用程序
 func (app *Application) Start() error {
-	app.logger.Printf("正在启动 Sandwich 代理服务...")
+	app.logger.Info().Msg("正在启动 Sandwich 代理服务...")
 
 	// 启动服务器管理器
 	if err := app.serverManager.Start(); err != nil {
@@ -267,10 +273,10 @@ func (app *Application) Start() error {
 			// 创建 TLS 配置
 			tlsConfig, err := app.createTLSConfig(server.TLS)
 			if err != nil {
-				app.logger.Printf("创建 TLS 配置失败: %v", err)
+				app.logger.Error().Err(err).Msg("创建 TLS 配置失败")
 			} else {
-				if err := app.http3Server.Start(addr, tlsConfig); err != nil {
-					app.logger.Printf("启动 HTTP/3 服务器失败: %v", err)
+				if err = app.http3Server.Start(addr, tlsConfig); err != nil {
+					app.logger.Error().Err(err).Msg("启动 HTTP/3 服务器失败")
 				}
 			}
 		}
@@ -297,28 +303,28 @@ func (app *Application) createTLSConfig(tlsConfig *config.TLSConfig) (*tls.Confi
 
 // printStartupInfo 打印启动信息
 func (app *Application) printStartupInfo() {
-	app.logger.Printf("========================================")
-	app.logger.Printf("Sandwich 代理服务 v2 启动成功")
-	app.logger.Printf("========================================")
+	app.logger.Println("========================================")
+	app.logger.Println("Sandwich 代理服务 v2 启动成功")
+	app.logger.Println("========================================")
 
 	// 打印监听地址
 	addresses := app.serverManager.GetListenAddresses()
 	for _, addr := range addresses {
-		app.logger.Printf("监听地址: %s", addr)
+		app.logger.Info().Str("监听地址", addr).Msg("监听信息")
 	}
 
 	// 打印功能状态
 	if app.config.Features.HTTP3.Enabled {
-		app.logger.Printf("HTTP/3 支持: 已启用")
+		app.logger.Info().Msg("HTTP/3 支持: 已启用")
 	}
 	if app.config.Features.WebSocket.Enabled {
-		app.logger.Printf("WebSocket 支持: 已启用")
+		app.logger.Info().Msg("WebSocket 支持: 已启用")
 	}
 	if app.config.Features.Gzip.Enabled {
-		app.logger.Printf("Gzip 压缩: 已启用")
+		app.logger.Info().Msg("Gzip 压缩: 已启用")
 	}
 	if app.config.Features.Cache.Enabled {
-		app.logger.Printf("内存缓存: 已启用")
+		app.logger.Info().Msg("内存缓存: 已启用")
 	}
 
 	app.logger.Printf("========================================")
@@ -327,7 +333,7 @@ func (app *Application) printStartupInfo() {
 
 // Stop 停止应用程序
 func (app *Application) Stop() error {
-	app.logger.Printf("正在停止 Sandwich 代理服务...")
+	app.logger.Info().Msg("正在停止 Sandwich 代理服务...")
 
 	// 停止配置监控
 	if app.configLoader != nil {
@@ -337,35 +343,35 @@ func (app *Application) Stop() error {
 	// 停止 HTTP/3 服务器
 	if app.http3Server != nil {
 		if err := app.http3Server.Stop(); err != nil {
-			app.logger.Printf("停止 HTTP/3 服务器失败: %v", err)
+			app.logger.Error().Err(err).Msg("停止 HTTP/3 服务器失败")
 		}
 	}
 
 	// 停止 WebSocket 服务器
 	if app.wsServer != nil {
 		if err := app.wsServer.Stop(); err != nil {
-			app.logger.Printf("停止 WebSocket 服务器失败: %v", err)
+			app.logger.Error().Err(err).Msg("停止 WebSocket 服务器失败")
 		}
 	}
 
 	// 停止服务器管理器
 	if app.serverManager != nil {
 		if err := app.serverManager.Stop(); err != nil {
-			app.logger.Printf("停止服务器管理器失败: %v", err)
+			app.logger.Error().Err(err).Msg("停止服务器管理器失败")
 		}
 	}
 
 	// 停止状态统计服务器
 	if app.statServer != nil {
 		if err := app.statServer.Stop(); err != nil {
-			app.logger.Printf("停止状态服务器失败: %v", err)
+			app.logger.Error().Err(err).Msg("停止状态服务器失败")
 		}
 	}
 
 	// 取消上下文
 	app.cancel()
 
-	app.logger.Printf("Sandwich 代理服务已停止")
+	app.logger.Info().Msg("Sandwich 代理服务已停止")
 	return nil
 }
 
@@ -416,18 +422,18 @@ func (app *Application) addResponseHeaders(response *http.Response) {
 
 // handleProxyError 处理代理错误
 func (app *Application) handleProxyError(writer http.ResponseWriter, request *http.Request, err error) {
-	app.logger.Printf("代理错误 - Host: %s, URL: %s, Error: %v", request.Host, request.URL.String(), err)
+	app.logger.Error().Err(err).Str("Host", request.Host).Any("URL", request.URL).Msg("代理错误")
 
 	// 检查内部错误标志
 	errorType := request.Header.Get("X-Sandwich-Error")
 	switch errorType {
 	case "domain-not-allowed":
-		app.logger.Printf("域名不被允许: %s", request.Host)
+		app.logger.Info().Str("域名", request.Host).Msg("域名不被允许")
 		writer.WriteHeader(http.StatusForbidden)
 		writer.Write([]byte("Domain not allowed"))
 		return
 	case "no-backend":
-		app.logger.Printf("没有可用的后端服务: %s", request.Host)
+		app.logger.Info().Str("HOST", request.Host).Msg("没有可用的后端服务")
 		writer.WriteHeader(http.StatusBadGateway)
 		writer.Write([]byte("No backend available"))
 		return

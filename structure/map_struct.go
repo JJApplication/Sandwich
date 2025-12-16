@@ -9,9 +9,10 @@ type MapStruct struct {
 	mu sync.RWMutex
 }
 
-func NewMapStruct() *MapStruct {
+// NewMapStruct 预分配内存
+func NewMapStruct(size int) *MapStruct {
 	return &MapStruct{
-		m:  make(map[string]struct{}),
+		m:  make(map[string]struct{}, size),
 		mu: sync.RWMutex{},
 	}
 }

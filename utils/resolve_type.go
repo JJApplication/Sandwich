@@ -9,10 +9,13 @@ import (
 )
 
 // ResolveSrv 为修改响应头识别请求的服务是否属于后端
+//
+//go:inline
 func ResolveSrv(r *http.Request) int {
 	return resolveType(r)
 }
 
+//go:inline
 func resolveType(req *http.Request) int {
 	host := req.Host
 	stat.AddDomainStat(host)
