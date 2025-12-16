@@ -34,26 +34,28 @@ func syncGEOStat() {
 
 // AddGeo 使用协程处理 减少耗时
 func AddGeo(addr string) {
-	cfg := config.Get()
-	if !cfg.Stat.EnableStat {
-		return
-	}
-	ip, _, err := net.SplitHostPort(addr)
-	if err != nil {
-		return
-	}
-	isoCode := geo2.GeoLookUp(ip)
-	if isoCode == "" {
-		return
-	}
+	go func() {
+		cfg := config.Get()
+		if !cfg.Stat.EnableStat {
+			return
+		}
+		ip, _, err := net.SplitHostPort(addr)
+		if err != nil {
+			return
+		}
+		isoCode := geo2.GeoLookUp(ip)
+		if isoCode == "" {
+			return
+		}
 
-	// 原子操作geo指针时 只需要读锁
-	geo, ok := geoIp.Get(isoCode)
-	if !ok {
-		geoIp.Put(isoCode, new(int64))
-	} else {
-		atomic.AddInt64(geo, 1)
-	}
+		// 原子操作geo指针时 只需要读锁
+		geo, ok := geoIp.Get(isoCode)
+		if !ok {
+			geoIp.Put(isoCode, new(int64))
+		} else {
+			atomic.AddInt64(geo, 1)
+		}
+	}()
 }
 
 func GetGeoData() []byte {

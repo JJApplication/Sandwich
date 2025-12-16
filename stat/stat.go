@@ -24,23 +24,26 @@ const (
 	Today
 )
 
+// Add 后台异步的状态统计
 func Add(tp int) {
-	cfg := config.Get()
-	if !cfg.Stat.EnableStat {
-		return
-	}
-	switch tp {
-	case Total:
-		addTotal()
-	case API:
-		addAPI()
-	case Static:
-		addStatic()
-	case Fail:
-		addFail()
-	default:
-		addTotal()
-	}
+	go func() {
+		cfg := config.Get()
+		if !cfg.Stat.EnableStat {
+			return
+		}
+		switch tp {
+		case Total:
+			addTotal()
+		case API:
+			addAPI()
+		case Static:
+			addStatic()
+		case Fail:
+			addFail()
+		default:
+			addTotal()
+		}
+	}()
 }
 
 // Get 从缓存中读取数据

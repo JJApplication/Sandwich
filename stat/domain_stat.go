@@ -12,21 +12,23 @@ const (
 )
 
 func AddDomainStat(domain string) {
-	cfg := config.Get()
-	if !cfg.Stat.EnableStat {
-		return
-	}
-	if domain == "" {
-		return
-	}
+	go func() {
+		cfg := config.Get()
+		if !cfg.Stat.EnableStat {
+			return
+		}
+		if domain == "" {
+			return
+		}
 
-	// 原子操作geo指针时 只需要读锁
-	ds, ok := domainStat.Get(domain)
-	if !ok {
-		domainStat.Put(domain, new(int64))
-	} else {
-		atomic.AddInt64(ds, 1)
-	}
+		// 原子操作geo指针时 只需要读锁
+		ds, ok := domainStat.Get(domain)
+		if !ok {
+			domainStat.Put(domain, new(int64))
+		} else {
+			atomic.AddInt64(ds, 1)
+		}
+	}()
 }
 
 func GetDomainStat() []byte {

@@ -25,7 +25,7 @@ func (t *sandwichTransport) RoundTrip(req *http.Request) (*http.Response, error)
 		resp, err := t.Transport.RoundTrip(req)
 
 		if config.Debug {
-			utils.PerformCalc(start)
+			utils.PerformCalc("round-trip", start)
 		}
 
 		return resp, err

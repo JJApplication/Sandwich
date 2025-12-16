@@ -18,9 +18,10 @@ func PerformTime(f func()) (time.Time, time.Time, time.Duration) {
 
 // 直接打印起始时间
 
-func PerformCalc(start time.Time) {
+func PerformCalc(event string, start time.Time) {
 	end := time.Now()
-	log.GetLogger().DebugF("Perform test start at %s - end at %s - sub: %v",
+	log.GetLogger().DebugF("Perform test [%s] start at %s - end at %s - sub: %v",
+		event,
 		start.Format(time.RFC3339Nano),
 		end.Format(time.RFC3339Nano), end.Sub(start))
 }

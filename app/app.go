@@ -321,12 +321,6 @@ func (app *Application) printStartupInfo() {
 		app.logger.Printf("内存缓存: 已启用")
 	}
 
-	// 打印域名配置
-	//domains := app.router.GetSupportedDomains()
-	//if len(domains) > 0 {
-	//	app.logger.Printf("支持的域名: %v", domains)
-	//}
-
 	app.logger.Printf("========================================")
 	printModifiers(&app.config.Features)
 }
@@ -466,9 +460,6 @@ func (app *Application) GetStats() map[string]interface{} {
 	}
 
 	// 域名统计
-	if app.router != nil {
-		//stats["domains"] = app.router.GetDomainStats()
-	}
 
 	return stats
 }
