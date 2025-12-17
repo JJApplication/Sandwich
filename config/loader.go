@@ -27,9 +27,6 @@ var (
 )
 
 func Get() *Config {
-	if cf == nil {
-		return new(Config)
-	}
 	return cf
 }
 

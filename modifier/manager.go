@@ -16,30 +16,29 @@ import (
 // ModifierManager 修改器管理器
 // 负责管理和协调所有响应修改器
 type ModifierManager struct {
-	lock      *sync.RWMutex
 	chain     *ModifierChain
+	lock      sync.RWMutex
 	modifiers []Modifier
 }
 
 var (
-	m *ModifierManager
+	m    *ModifierManager
+	once sync.Once
 )
 
-func init() {
-	m = NewModifierManager()
-}
-
 func GetManager() *ModifierManager {
-	if m != nil {
-		return m
-	}
-	return new(ModifierManager)
+	once.Do(func() {
+		if m == nil {
+			m = NewModifierManager()
+		}
+	})
+	return m
 }
 
 // NewModifierManager 创建新的修改器管理器
 func NewModifierManager() *ModifierManager {
 	manager := &ModifierManager{
-		lock:      new(sync.RWMutex),
+		lock:      sync.RWMutex{},
 		chain:     NewModifierChain(),
 		modifiers: make([]Modifier, 0),
 	}
@@ -51,18 +50,19 @@ func NewModifierManager() *ModifierManager {
 }
 
 func InitModifiers() {
+	mm := GetManager()
 	// add trace
-	m.RegisterModifier(NewTraceModifier())
+	mm.RegisterModifier(NewTraceModifier())
 	// add secure header
-	m.RegisterModifier(NewSecureHeaderModifier())
+	mm.RegisterModifier(NewSecureHeaderModifier())
 	// no cache
-	m.RegisterModifier(NewNoCache())
+	mm.RegisterModifier(NewNoCache())
 	// custom header
-	m.RegisterModifier(NewCustomHeaderModifier())
+	mm.RegisterModifier(NewCustomHeaderModifier())
 	// 应用gzip压缩中间件
-	m.RegisterModifier(NewGzipModifier())
+	mm.RegisterModifier(NewGzipModifier())
 	// 应用cors
-	m.RegisterModifier(NewCorsHeaderModifier())
+	mm.RegisterModifier(NewCorsHeaderModifier())
 }
 
 // registerDefaultModifiers 注册默认的修改器

@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"runtime"
 	"sandwich/config"
+	"sandwich/log"
 	"sandwich/modifier"
 	"sandwich/pprof"
 	"sandwich/protocols/http3"
@@ -58,6 +59,9 @@ func (app *Application) Initialize(configPath string) error {
 	if err := app.loadConfig(configPath); err != nil {
 		return fmt.Errorf("加载配置失败: %v", err)
 	}
+
+	// 重载日志器
+	log.ReloadLogger(app.config)
 
 	// 设置最大core核心数
 	if app.config.MaxCores <= 0 {

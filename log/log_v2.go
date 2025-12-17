@@ -4,27 +4,34 @@ import (
 	"github.com/rs/zerolog"
 	"os"
 	"sandwich/config"
+	"sync"
 	"time"
 )
 
 var (
 	globalLogger zerolog.Logger
+	once         sync.Once
 )
 
-func InitLogger(configPath string) {
-	cf := config.NewConfigLoader(configPath)
-	if cf == nil {
-		return
-	}
-	conf, err := cf.LoadConfig()
-	if err != nil {
-		panic(err)
-	}
+func InitLogger() {
 	globalLogger = zerolog.New(zerolog.ConsoleWriter{
 		Out:        os.Stdout,
-		NoColor:    conf.Log.Color,
 		TimeFormat: time.DateTime,
-	}).Level(getLevel(conf.Log.LogLevel)).With().Timestamp().Logger()
+	}).Level(zerolog.NoLevel).With().Timestamp().Logger()
+}
+
+func ReloadLogger(conf *config.Config) {
+	once.Do(func() {
+		globalLogger = zerolog.New(zerolog.ConsoleWriter{
+			Out:        os.Stdout,
+			NoColor:    !conf.Log.Color,
+			TimeFormat: time.DateTime,
+		}).Level(getLevel(conf.Log.LogLevel)).With().Timestamp().Logger()
+	})
+}
+
+func Get() *zerolog.Logger {
+	return &globalLogger
 }
 
 func GetLogger() *zerolog.Logger {

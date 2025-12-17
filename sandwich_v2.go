@@ -73,7 +73,7 @@ func main() {
 	}
 
 	// 日志
-	log.InitLogger(*configPath)
+	log.InitLogger()
 
 	// 创建应用程序实例
 	sandwichApp := app.NewApplication(log.GetLogger())

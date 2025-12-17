@@ -1,22 +1,18 @@
 package db
 
 import (
-	"sync"
-	"time"
-
 	"sandwich/config"
 	"sandwich/log"
+	"sync"
 
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
 var (
-	db       *gorm.DB
-	initOnce sync.Once
-	mu       sync.Mutex
-	enabled  bool
-	interval time.Duration
+	db      *gorm.DB
+	mu      sync.Mutex
+	enabled bool
 )
 
 // Init 初始化时序统计模块，从配置加载并连接数据库
