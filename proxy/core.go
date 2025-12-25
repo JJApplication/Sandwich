@@ -21,7 +21,6 @@ import (
 	seq "sandwich/stat/sequence"
 	"sandwich/utils"
 	"sync"
-	"time"
 )
 
 const (
@@ -85,107 +84,115 @@ func getBufferPool(bufSize int) httputil.BufferPool {
 	}
 }
 
-// http转发
-//
-//go:inline
-func newProxy() *httputil.ReverseProxy {
+// ProxyDirector 代理请求处理逻辑
+func ProxyDirector(request *http.Request) {
 	cfg := config.Get()
+	log.GetLogger().Debug().
+		Any("Header", request.Header).
+		Str("Host", request.Host).
+		Str("Trace-ID", request.Header.Get(cfg.ProxyHeader.TraceId)).
+		Msg("parse request")
+	// 转发前安全清理敏感请求头
+	stat.Add(stat.Total)
+	stat.AddGeo(request.RemoteAddr)
+	if !prehandler.ValidateDomain(request) {
+		request.Header.Set(serror.SandwichInternalFlag, serror.SandwichDomainNotAllow)
+		request.URL = &url.URL{Scheme: constant.SchemeSandwich}
+		return
+	}
+
+	// 记录时序数据（域名、路径、方法）
+	if seq.SeqMgt().IsEnabled() {
+		path := request.URL.Path
+		if path == "" {
+			path = "/"
+		}
+		seq.SeqMgt().RecordRequest(request.Host, path, request.Method)
+	}
+
+	// 检查是否为gRPC代理请求
+	if grpc_proxy.IsEnabled() {
+		proxy := grpc_proxy.GetGrpcProxy()
+		if proxy != nil && proxy.IsGrpcRequest(request) {
+			log.Debug("detected gRPC proxy request")
+			// 设置特殊的scheme来标识gRPC请求，后续在Transport中处理
+			request.URL = &url.URL{Scheme: constant.SchemeGrpc}
+			return
+		}
+	}
+
+	request.URL = ParseRequest(request)
+	log.GetLogger().Debug().Any("URL", request.URL).Msg("parse request")
+}
+
+// ProxyModifyResponse 响应修改逻辑
+func ProxyModifyResponse(response *http.Response) error {
 	mods := modifier.GetManager().GetModifiers()
-
-	proxy := &httputil.ReverseProxy{
-		Director: func(request *http.Request) {
-			log.GetLogger().Debug().
-				Any("Header", request.Header).
-				Str("Host", request.Host).
-				Str("Trace-ID", request.Header.Get(cfg.ProxyHeader.TraceId)).
-				Msg("parse request")
-			// 转发前安全清理敏感请求头
-			stat.Add(stat.Total)
-			stat.AddGeo(request.RemoteAddr)
-			if !prehandler.ValidateDomain(request) {
-				request.Header.Set(serror.SandwichInternalFlag, serror.SandwichDomainNotAllow)
-				request.URL = &url.URL{Scheme: constant.SchemeSandwich}
-				return
-			}
-
-			// 记录时序数据（域名、路径、方法）
-			if seq.SeqMgt().IsEnabled() {
-				path := request.URL.Path
-				if path == "" {
-					path = "/"
-				}
-				seq.SeqMgt().RecordRequest(request.Host, path, request.Method)
-			}
-
-			// 检查是否为gRPC代理请求
-			if grpc_proxy.IsEnabled() {
-				proxy := grpc_proxy.GetGrpcProxy()
-				if proxy != nil && proxy.IsGrpcRequest(request) {
-					log.Debug("detected gRPC proxy request")
-					// 设置特殊的scheme来标识gRPC请求，后续在Transport中处理
-					request.URL = &url.URL{Scheme: constant.SchemeGrpc}
-					return
-				}
-			}
-
-			request.URL = ParseRequest(request)
-			log.GetLogger().Debug().Any("URL", request.URL).Msg("parse request")
-		},
-		Transport:     getOptimizedTransport(cfg.Proxy.Transport),
-		FlushInterval: time.Duration(utils.DefaultInt64(cfg.Proxy.FlushInterval, FlushInterval)) * time.Millisecond,
-		ErrorLog:      nil,
-		BufferPool:    getBufferPool(utils.DefaultInt(cfg.Proxy.BufSize, BufferSize)),
-		ModifyResponse: func(response *http.Response) error {
-			if config.Debug {
-				start, end, sub := utils.PerformTime(func() {
-					for _, mod := range mods {
-						mod.Use(response)
-					}
-				})
-				log.GetLogger().Debug().Time("start", start).Time("end", end).Dur("sub", sub).Msg("Perform time for response modifier")
-				return nil
-			}
-
+	if config.Debug {
+		start, end, sub := utils.PerformTime(func() {
 			for _, mod := range mods {
 				mod.Use(response)
 			}
-			return nil
-		},
-		ErrorHandler: func(writer http.ResponseWriter, request *http.Request, err error) {
-			log.GetLogger().Debug().
-				Str("host", request.Host).
-				Str("url", request.URL.String()).
-				Str("proto", request.Proto).
-				Str("method", request.Method).
-				Err(err).Msg("Proxy Error")
-			stat.Add(stat.Fail)
-			// 熔断判断
-			switch request.Header.Get(serror.SandwichInternalFlag) {
-			case serror.SandwichBucketLimit:
-				log.Debug("reach breaker limit")
-				writer.WriteHeader(http.StatusGatewayTimeout)
-				return
-			case serror.SandwichReqLimit:
-				log.Debug("reach flow control limit")
-				cache.Cache(http.StatusTooManyRequests, writer, request, cache.Forbidden)
-				return
-			case serror.SandwichDomainNotAllow:
-				log.Debug("http: no Host in request URL")
-				cache.Cache(http.StatusForbidden, writer, request, cache.Forbidden)
-				return
-			case serror.SandwichBackendError:
-				breaker.Set(request.Host)
-				log.Debug("backend: service is down")
-				cache.Cache(http.StatusBadGateway, writer, request, cache.Unavailable)
-			}
-			log.GetLogger().Debug().Err(err).Msg("proxy connect error")
-			cache.Cache(http.StatusBadGateway, writer, request, cache.Unavailable)
-		},
+		})
+		log.GetLogger().Debug().Time("start", start).Time("end", end).Dur("sub", sub).Msg("Perform time for response modifier")
+		return nil
 	}
 
-	return proxy
+	for _, mod := range mods {
+		mod.Use(response)
+	}
+	return nil
 }
 
-func CreateProxy() *httputil.ReverseProxy {
+// ProxyErrorHandler 错误处理逻辑
+func ProxyErrorHandler(writer http.ResponseWriter, request *http.Request, err error) {
+	log.GetLogger().Debug().
+		Str("host", request.Host).
+		Str("url", request.URL.String()).
+		Str("proto", request.Proto).
+		Str("method", request.Method).
+		Err(err).Msg("Proxy Error")
+	stat.Add(stat.Fail)
+	// 熔断判断
+	switch request.Header.Get(serror.SandwichInternalFlag) {
+	case serror.SandwichBucketLimit:
+		log.Debug("reach breaker limit")
+		writer.WriteHeader(http.StatusGatewayTimeout)
+		return
+	case serror.SandwichReqLimit:
+		log.Debug("reach flow control limit")
+		cache.Cache(http.StatusTooManyRequests, writer, request, cache.Forbidden)
+		return
+	case serror.SandwichDomainNotAllow:
+		log.Debug("http: no Host in request URL")
+		cache.Cache(http.StatusForbidden, writer, request, cache.Forbidden)
+		return
+	case serror.SandwichBackendError:
+		breaker.Set(request.Host)
+		log.Debug("backend: service is down")
+		cache.Cache(http.StatusBadGateway, writer, request, cache.Unavailable)
+	}
+	log.GetLogger().Debug().Err(err).Msg("proxy connect error")
+	cache.Cache(http.StatusBadGateway, writer, request, cache.Unavailable)
+}
+
+// http转发
+//
+//go:inline
+func newProxy() http.Handler {
+	cfg := config.Get()
+	mode := cfg.Proxy.ProxyMode
+
+	switch mode {
+	case "http":
+		return NewHttpProxy()
+	case "fasthttp":
+		return NewFastProxy()
+	default:
+		return NewHttpProxy()
+	}
+}
+
+func CreateProxy() http.Handler {
 	return newProxy()
 }

@@ -42,21 +42,21 @@ type FlowController struct {
 
 // RateLimiter 多时间窗口速率限制器
 type RateLimiter struct {
-	limits  []TimeWindowLimit
-	records map[string][]RequestRecord
-	mux     sync.RWMutex
+	rules    []ParsedRule
+	limiters map[string][]LimiterStrategy
+	mux      sync.RWMutex
 }
 
-// TimeWindowLimit 时间窗口限制
-type TimeWindowLimit struct {
-	Requests int           // 允许的请求数
-	Window   time.Duration // 时间窗口
+type ParsedRule struct {
+	Requests int
+	Window   time.Duration
+	Mode     string
 }
 
-// RequestRecord 请求记录
-type RequestRecord struct {
-	Timestamp time.Time
-	Key       string
+// LimiterStrategy 限流策略接口
+type LimiterStrategy interface {
+	Allow() bool
+	LastAccess() time.Time
 }
 
 // FlowCheckResult 流控检查结果
@@ -93,8 +93,8 @@ func NewFlowController() *FlowController {
 // createRateLimiter 创建速率限制器
 func (fc *FlowController) createRateLimiter(limits []config.RateLimit) *RateLimiter {
 	rl := &RateLimiter{
-		limits:  make([]TimeWindowLimit, 0, len(limits)),
-		records: make(map[string][]RequestRecord),
+		rules:    make([]ParsedRule, 0, len(limits)),
+		limiters: make(map[string][]LimiterStrategy),
 	}
 
 	for _, limit := range limits {
@@ -104,9 +104,10 @@ func (fc *FlowController) createRateLimiter(limits []config.RateLimit) *RateLimi
 				Msg("Invalid duration format")
 			continue
 		}
-		rl.limits = append(rl.limits, TimeWindowLimit{
+		rl.rules = append(rl.rules, ParsedRule{
 			Requests: limit.Requests,
 			Window:   duration,
+			Mode:     limit.Mode,
 		})
 	}
 
@@ -269,53 +270,37 @@ func (rl *RateLimiter) Allow(key string) bool {
 	rl.mux.Lock()
 	defer rl.mux.Unlock()
 
-	now := time.Now()
+	// 检查策略是否存在，不存在则创建
+	strategies, exists := rl.limiters[key]
+	if !exists {
+		strategies = make([]LimiterStrategy, 0, len(rl.rules))
+		for _, rule := range rl.rules {
+			var strategy LimiterStrategy
+			switch rule.Mode {
+			case "fixed":
+				strategy = NewFixedWindowLimiter(rule.Requests, rule.Window)
+			case "leaky":
+				strategy = NewLeakyBucketLimiter(rule.Requests, rule.Window)
+			case "token":
+				strategy = NewTokenBucketLimiter(rule.Requests, rule.Window)
+			case "sliding":
+				fallthrough
+			default:
+				strategy = NewSlidingWindowLimiter(rule.Requests, rule.Window)
+			}
+			strategies = append(strategies, strategy)
+		}
+		rl.limiters[key] = strategies
+	}
 
-	// 检查所有时间窗口
-	for _, limit := range rl.limits {
-		// 清理过期记录
-		rl.cleanExpiredRecords(key, now, limit.Window)
-
-		// 检查当前窗口请求数
-		if len(rl.records[key]) >= limit.Requests {
+	// 检查所有策略
+	for _, strategy := range strategies {
+		if !strategy.Allow() {
 			return false
 		}
 	}
 
-	// 记录请求
-	if rl.records[key] == nil {
-		rl.records[key] = make([]RequestRecord, 0)
-	}
-	rl.records[key] = append(rl.records[key], RequestRecord{
-		Timestamp: now,
-		Key:       key,
-	})
-
 	return true
-}
-
-// cleanExpiredRecords 清理过期记录
-func (rl *RateLimiter) cleanExpiredRecords(key string, now time.Time, window time.Duration) {
-	records := rl.records[key]
-	if records == nil {
-		return
-	}
-
-	// 找到第一个未过期的记录
-	cutoff := now.Add(-window)
-	startIdx := 0
-	for i, record := range records {
-		if record.Timestamp.After(cutoff) {
-			startIdx = i
-			break
-		}
-		startIdx = i + 1
-	}
-
-	// 移除过期记录
-	if startIdx > 0 {
-		rl.records[key] = records[startIdx:]
-	}
 }
 
 // CleanupExpiredRecords 定期清理过期记录
@@ -341,20 +326,25 @@ func (rl *RateLimiter) cleanup() {
 	defer rl.mux.Unlock()
 
 	now := time.Now()
-	for key := range rl.records {
-		// 按最长的时间窗口清理
-		maxWindow := time.Duration(0)
-		for _, limit := range rl.limits {
-			if limit.Window > maxWindow {
-				maxWindow = limit.Window
+
+	maxWindow := time.Duration(0)
+	for _, rule := range rl.rules {
+		if rule.Window > maxWindow {
+			maxWindow = rule.Window
+		}
+	}
+
+	for key, strategies := range rl.limiters {
+		lastAccess := time.Time{}
+		for _, s := range strategies {
+			la := s.LastAccess()
+			if la.After(lastAccess) {
+				lastAccess = la
 			}
 		}
-		if maxWindow > 0 {
-			rl.cleanExpiredRecords(key, now, maxWindow)
-			// 如果记录为空，删除key
-			if len(rl.records[key]) == 0 {
-				delete(rl.records, key)
-			}
+
+		if now.Sub(lastAccess) > maxWindow {
+			delete(rl.limiters, key)
 		}
 	}
 }

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"github.com/rs/zerolog"
 	"net/http"
-	"net/http/httputil"
 	"net/url"
 	"runtime"
 	"sandwich/config"
@@ -221,7 +220,7 @@ func (app *Application) isWebSocketRequest(r *http.Request) bool {
 
 // createReverseProxy 创建反向代理
 // 基于现有的 proxy.go 逻辑，集成到新架构中
-func (app *Application) createReverseProxy() *httputil.ReverseProxy {
+func (app *Application) createReverseProxy() http.Handler {
 	return proxy.CreateProxy()
 }
 

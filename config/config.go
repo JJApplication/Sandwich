@@ -45,6 +45,7 @@ type ProxyConfig struct {
 	FlushInterval   int64  `yaml:"flush_interval" json:"flush_interval"`
 	BufSize         int    `yaml:"buf_size" json:"buf_size"`
 	Transport       string `yaml:"transport" json:"transport"`                   // 传统 | fast
+	ProxyMode       string `yaml:"proxy_mode" json:"proxy_mode"`                 // 代理模式: http | fasthttp
 	MaxConnsPerHost int    `yaml:"max_conns_per_host" json:"max_conns_per_host"` // 每个主机最大连接数
 	IdleConnTimeout int    `yaml:"idle_conn_timeout" json:"idle_conn_timeout"`   // 空闲连接超时
 }
@@ -111,6 +112,7 @@ type RateLimit struct {
 	Requests int    `yaml:"requests" json:"requests"` // 允许的请求数
 	Window   string `yaml:"window" json:"window"`     // 时间窗口，如 "100s"、"10min"
 	Unit     string `yaml:"unit" json:"unit"`         // 时间单位: s, min
+	Mode     string `yaml:"mode" json:"mode"`         // 限流模式: fixed, leaky, token, sliding
 }
 
 // FlowControlConfig 流控配置结构体
